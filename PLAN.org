@@ -1,6 +1,9 @@
 * PLANS
   
-** TODO Build a workin web server.
+** TODO Build a working web server.
+
+   - Framework :: Play Framework (Java/Scala)
+   - Function :: Serve a REST service and a web interface
 
 ** TODO A HTTP client which can make request.
 
