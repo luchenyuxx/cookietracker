@@ -1,0 +1,3 @@
+* About Cookie
+  Software Engineering for Internet Applications [[http://philip.greenspun.com/seia/basics][Chapter Basics]] 
+  
