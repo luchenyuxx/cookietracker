@@ -1,0 +1,9 @@
+* PLANS
+  
+** TODO Build a workin web server.
+
+** TODO A HTTP client which can make request.
+
+** TODO A HTTP response parser which extract key infos.
+   
+** TODO Make parser and client work together recursively.
