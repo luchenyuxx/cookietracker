@@ -4,4 +4,4 @@
   [[https://tools.ietf.org/html/rfc6265][HTTP State Management Mechanism]]
   
 * About Web Crawling
-  [[https://mmistakes.github.io/skinny-bones-jekyll/getting-started/][Web Crawling With Akka]]
+  [[http://foat.me/articles/crawling-with-akka/][Web Crawling With Akka]]
