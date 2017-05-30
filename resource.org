@@ -1,3 +1,7 @@
 * About Cookie
-  Software Engineering for Internet Applications [[http://philip.greenspun.com/seia/basics][Chapter Basics]] 
+  Software Engineering for Internet Applications [[http://philip.greenspun.com/seia/basics][Chapter Basics]]
   
+  [[https://tools.ietf.org/html/rfc6265][HTTP State Management Mechanism]]
+  
+* About Web Crawling
+  [[http://foat.me/articles/crawling-with-akka/][Web Crawling With Akka]]
