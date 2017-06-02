@@ -1,5 +1,26 @@
-@()
+@(implicit request: RequestHeader)
 
 @main("Welcome to Play") {
-  <h1>Welcome to Play!</h1>
+<h1>Welcome to Play!</h1>
+<input type="button" onclick="sendMessage()" value="send message"/>
+<script type="text/javascript">
+            var webSocket = new WebSocket("@routes.HomeController.socket().webSocketURL()")
+
+            webSocket.onopen = function(){
+                console.log("The socket is connected.")
+            }
+
+            webSocket.onmessage = function (event) {
+                console.log(event.data)
+            }
+
+            function sendMessage() {
+                var msg = {
+                    message: "hello"
+                }
+
+                webSocket.send(JSON.stringify(msg))
+            }
+
+</script>
 }

@@ -1,7 +1,11 @@
 package controllers
 
 import javax.inject._
-import play.api._
+
+import akka.actor.ActorSystem
+import akka.stream.Materializer
+import play.api.libs.json.JsValue
+import play.api.libs.streams.ActorFlow
 import play.api.mvc._
 
 /**
@@ -9,7 +13,7 @@ import play.api.mvc._
  * application's home page.
  */
 @Singleton
-class HomeController @Inject() extends Controller {
+class HomeController @Inject() (implicit system: ActorSystem, materializer: Materializer) extends Controller {
 
   /**
    * Create an Action to render an HTML page.
@@ -19,6 +23,10 @@ class HomeController @Inject() extends Controller {
    * a path of `/`.
    */
   def index = Action { implicit request =>
-    Ok(views.html.index())
+    Ok(views.html.index(request))
+  }
+
+  def socket = WebSocket.accept[JsValue, JsValue] { implicit request =>
+    ActorFlow.actorRef(out => WebSocketActor.props(out))
   }
 }
