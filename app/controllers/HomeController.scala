@@ -23,7 +23,7 @@ class HomeController @Inject() (implicit system: ActorSystem, materializer: Mate
    * a path of `/`.
    */
   def index = Action { implicit request =>
-    Ok(views.html.index(request))
+    Ok(views.html.index())
   }
 
   def socket = WebSocket.accept[JsValue, JsValue] { implicit request =>

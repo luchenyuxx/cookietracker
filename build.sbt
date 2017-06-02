@@ -9,6 +9,10 @@ scalaVersion := "2.11.11"
 
 libraryDependencies += filters
 libraryDependencies += "org.scalatestplus.play" %% "scalatestplus-play" % "2.0.0" % Test
+// Used for HTML parse
+libraryDependencies += "org.jsoup" % "jsoup" % "1.10.2"
+// Used for URL validate
+libraryDependencies += "commons-validator" % "commons-validator" % "1.6"
 
 // Adds additional packages into Twirl
 //TwirlKeys.templateImports += "com.cookietracker.controllers._"
