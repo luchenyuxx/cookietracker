@@ -2,7 +2,11 @@ package cookietracker
 
 import java.net.URL
 
-import akka.actor.{Actor, ActorRef}
+import akka.actor.{Actor, ActorRef, Props}
+
+object Indexer {
+  def props(supervisor: ActorRef) = Props(new Indexer(supervisor))
+}
 
 class Indexer(supervisor: ActorRef) extends Actor {
   var store = Map.empty[URL, Content]

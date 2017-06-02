@@ -6,10 +6,12 @@ import akka.actor.{Actor, ActorSystem, Props, _}
 
 import scala.language.postfixOps
 
-class Supervisor(system: ActorSystem) extends Actor {
-  val indexer = context actorOf Props(new Indexer(self))
+object Supervisor {
+  def props(system: ActorSystem) = Props(new Supervisor(system))
+}
 
-  val actor = system.actorOf(Props(new SiteCrawler(self, indexer)))
+class Supervisor(system: ActorSystem) extends Actor {
+  val indexer = context actorOf Indexer.props(self)
 
   val maxPages = 100
   val maxRetries = 2
@@ -17,7 +19,7 @@ class Supervisor(system: ActorSystem) extends Actor {
   var numVisited = 0
   var toScrap = Set.empty[URL]
   var scrapCounts = Map.empty[URL, Int]
-//  var host2Actor = Map.empty[String, ActorRef]
+  var host2Actor = Map.empty[String, ActorRef]
 
   def receive: Receive = {
     case Start(url) =>
@@ -34,7 +36,7 @@ class Supervisor(system: ActorSystem) extends Actor {
       println(s"scraping failed $url, $retries, reason = $reason")
       if (retries < maxRetries) {
         countVisits(url)
-        actor ! Scrap(url)
+        host2Actor(url.getHost) ! Scrap(url)
       } else
         checkAndShutdown(url)
   }
@@ -52,11 +54,11 @@ class Supervisor(system: ActorSystem) extends Actor {
     val host = url.getHost
     println(s"Supervisor: going to scrap $host")
     if (!host.isEmpty) {
-//      val actor = host2Actor.getOrElse(host, {
-//        val buff = system.actorOf(Props(new SiteCrawler(self, indexer)))
-//        host2Actor += (host -> buff)
-//        buff
-//      })
+      val actor = host2Actor.getOrElse(host, {
+        val buff = context actorOf SiteCrawler.props(self, indexer)
+        host2Actor += (host -> buff)
+        buff
+      })
 
       numVisited += 1
       toScrap += url

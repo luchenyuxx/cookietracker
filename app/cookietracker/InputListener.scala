@@ -1,8 +1,12 @@
 package cookietracker
 
-import akka.actor.Actor
+import akka.actor.{Actor, Props}
 
 import scala.io.StdIn
+
+object InputListener {
+  def props = Props(new InputListener)
+}
 
 class InputListener extends Actor{
   override def receive: Receive = {

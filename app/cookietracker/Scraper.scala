@@ -2,11 +2,15 @@ package cookietracker
 
 import java.net.URL
 
-import akka.actor.{Actor, ActorRef}
+import akka.actor.{Actor, ActorRef, Props}
 import org.apache.commons.validator.routines.UrlValidator
 import org.jsoup.Jsoup
 
 import scala.collection.JavaConverters._
+
+object Scraper {
+  def props(indexer: ActorRef) = Props(new Scraper(indexer))
+}
 
 class Scraper(indexer: ActorRef) extends Actor {
   val urlValidator = new UrlValidator()
