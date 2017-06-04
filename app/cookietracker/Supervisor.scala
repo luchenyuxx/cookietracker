@@ -2,16 +2,17 @@ package cookietracker
 
 import java.net.URL
 
-import akka.actor.{Actor, ActorSystem, Props, _}
+import akka.actor.{Actor, Props, _}
 
 import scala.language.postfixOps
 
 object Supervisor {
-  def props(system: ActorSystem) = Props(new Supervisor(system))
+  def props(socketPublisher: ActorRef) = Props(new Supervisor(Some(socketPublisher)))
+  def props = Props(new Supervisor(None))
 }
 
-class Supervisor(system: ActorSystem) extends Actor {
-  val indexer = context actorOf Indexer.props(self)
+class Supervisor(socketPublisher: Option[ActorRef]) extends Actor {
+  val indexer: ActorRef = context actorOf Indexer.props(self)
 
   val maxPages = 100
   val maxRetries = 2
@@ -41,16 +42,20 @@ class Supervisor(system: ActorSystem) extends Actor {
         checkAndShutdown(url)
   }
 
+  // TODO: calculate graph when recieve IndexFinished
+  def calculateGraph(url: URL, urls: Seq[URL]) = {
+
+  }
+
   def checkAndShutdown(url: URL): Unit = {
     toScrap -= url
     // if nothing to visit
     if (toScrap.isEmpty) {
       self ! PoisonPill
-      system.terminate()
     }
   }
 
-  def scrap(url: URL) = {
+  def scrap(url: URL): Unit = {
     val host = url.getHost
     println(s"Supervisor: going to scrap $host")
     if (!host.isEmpty) {

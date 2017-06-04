@@ -1,6 +1,7 @@
 package controllers
 
 import akka.actor.{Actor, ActorRef, Props}
+import cookietracker.Supervisor
 import play.api.libs.json.JsValue
 
 object WebSocketActor {
@@ -13,6 +14,7 @@ class WebSocketActor(out: ActorRef) extends Actor{
       out ! msg
   }
 
+  lazy val cookieTrackerSupervisor: ActorRef = context.actorOf(Supervisor.props(self))
   // Do something when stop
   override def postStop(): Unit = super.postStop()
 }
