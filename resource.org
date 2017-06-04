@@ -5,6 +5,7 @@
   
 * About Web Crawling
   [[http://foat.me/articles/crawling-with-akka/][Web Crawling With Akka]]
+  [[file:resources/web_crawler.pdf][Architecture Web Crawler]]
 
 * About Network Visualization
   [[http://sigmajs.org/][Sigma]]
