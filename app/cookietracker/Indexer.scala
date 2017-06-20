@@ -3,6 +3,7 @@ package cookietracker
 import java.net.URL
 
 import akka.actor.{Actor, ActorRef, Props}
+import play.api.Logger
 
 object Indexer {
   def props(supervisor: ActorRef) = Props(new Indexer(supervisor))
@@ -10,10 +11,11 @@ object Indexer {
 
 class Indexer(supervisor: ActorRef) extends Actor {
   var store = Map.empty[URL, Content]
+  val logger = Logger(this.getClass)
 
   def receive: Receive = {
     case Index(url, content) =>
-      println(s"saving page $url with $content")
+      logger.info(s"saving page $url with $content")
       store += (url -> content)
       supervisor ! IndexFinished(url, content.urls)
   }

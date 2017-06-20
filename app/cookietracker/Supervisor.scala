@@ -3,6 +3,7 @@ package cookietracker
 import java.net.URL
 
 import akka.actor.{Actor, Props, _}
+import play.api.Logger
 
 import scala.language.postfixOps
 
@@ -12,6 +13,7 @@ object Supervisor {
 }
 
 class Supervisor(socketPublisher: Option[ActorRef]) extends Actor {
+  val logger = Logger(this.getClass)
   val indexer: ActorRef = context actorOf Indexer.props(self)
 
   val maxPages = 100
@@ -24,17 +26,17 @@ class Supervisor(socketPublisher: Option[ActorRef]) extends Actor {
 
   def receive: Receive = {
     case Start(url) =>
-      println(s"starting $url")
+      logger.info(s"starting $url")
       scrap(url)
     case ScrapFinished(url) =>
-      println(s"scraping finished $url")
+      logger.info(s"scraping finished $url")
     case IndexFinished(url, urls) =>
       if (numVisited < maxPages)
         urls.toSet.filter(l => !scrapCounts.contains(l)).foreach(scrap)
       checkAndShutdown(url)
     case ScrapFailure(url, reason) =>
       val retries: Int = scrapCounts(url)
-      println(s"scraping failed $url, $retries, reason = $reason")
+      logger.info(s"scraping failed $url, $retries, reason = $reason")
       if (retries < maxRetries) {
         countVisits(url)
         host2Actor(url.getHost) ! Scrap(url)
@@ -57,7 +59,7 @@ class Supervisor(socketPublisher: Option[ActorRef]) extends Actor {
 
   def scrap(url: URL): Unit = {
     val host = url.getHost
-    println(s"Supervisor: going to scrap $host")
+    logger.info(s"Supervisor: going to scrap $host")
     if (!host.isEmpty) {
       val actor = host2Actor.getOrElse(host, {
         val buff = context actorOf SiteCrawler.props(self, indexer)

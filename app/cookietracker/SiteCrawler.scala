@@ -5,6 +5,7 @@ import java.net.URL
 import akka.actor.{Actor, Props, _}
 import akka.pattern.{ask, pipe}
 import akka.util.Timeout
+import play.api.Logger
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -18,6 +19,7 @@ object SiteCrawler {
 class SiteCrawler(supervisor: ActorRef, indexer: ActorRef) extends Actor {
   val process = "Process next url"
   val readyToProcess = "Ready to process next url"
+  val logger = Logger(this.getClass)
 
   val scraper: ActorRef = context actorOf Scraper.props(indexer)
   implicit val timeout = Timeout(3 seconds)
@@ -27,30 +29,13 @@ class SiteCrawler(supervisor: ActorRef, indexer: ActorRef) extends Actor {
   def receive: Receive = {
     case Scrap(url) =>
       // wait some time, so we will not spam a website
-      println(s"SiteCraler: received request to process ... $url")
+      logger.info(s"Received request to process ... $url")
       toProcess = url :: toProcess
-//      self ! readyToProcess
-//    case `readyToProcess` =>
-//      toProcess match {
-//        case Nil =>
-//        case url :: list =>
-//          toProcess = list
-//          inputListener ! ReadyToProcess(url)
-//      }
-//    case Process(url) =>
-//      println(s"SiteCrawler: processing $url")
-//      (scraper ? Scrap(url)).mapTo[ScrapFinished]
-//        .recoverWith { case e => Future {
-//          ScrapFailure(url, e)
-//        }
-//        }
-//        .pipeTo(supervisor)
-//      self ! readyToProcess
     case `process` =>
       toProcess match {
         case Nil =>
         case url :: list =>
-          println(s"site scraping... $url")
+          logger.info(s"site scraping... $url")
           toProcess = list
           (scraper ? Scrap(url)).mapTo[ScrapFinished]
             .recoverWith { case e => Future {

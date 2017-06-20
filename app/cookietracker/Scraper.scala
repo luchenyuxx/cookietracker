@@ -5,6 +5,7 @@ import java.net.URL
 import akka.actor.{Actor, ActorRef, Props}
 import org.apache.commons.validator.routines.UrlValidator
 import org.jsoup.Jsoup
+import play.api.Logger
 
 import scala.collection.JavaConverters._
 
@@ -14,10 +15,11 @@ object Scraper {
 
 class Scraper(indexer: ActorRef) extends Actor {
   val urlValidator = new UrlValidator()
+  val logger = Logger(this.getClass)
 
   def receive: Receive = {
     case Scrap(url) =>
-      println(s"Scraper: scraping $url")
+      logger.info(s"Scraper: scraping $url")
       val content = parse(url)
       sender() ! ScrapFinished(url)
       indexer ! Index(url, content)
