@@ -42,11 +42,6 @@ class Supervisor(socketPublisher: Option[ActorRef]) extends Actor with HaveLogge
         checkAndShutdown(url)
   }
 
-  // TODO: calculate graph when recieve IndexFinished
-  def calculateGraph(url: URL, urls: Seq[URL]) = {
-
-  }
-
   def checkAndShutdown(url: URL): Unit = {
     toScrap -= url
     // if nothing to visit
