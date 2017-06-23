@@ -1,5 +1,9 @@
 name := """cookietracker"""
 
+// akka version should be compatible with akka http version
+lazy val akkaVersion = "2.4.19"
+lazy val akkaHttpVersion = "10.0.8"
+
 lazy val common = project in file("common")
 
 lazy val server = (project in file("server")).dependsOn(common).enablePlugins(PlayScala).settings(serverSettings)
@@ -15,14 +19,14 @@ inThisBuild(List(
 lazy val crawlerSettings = Seq(
   libraryDependencies ++= Seq(
     "org.scalatest" %% "scalatest" % "3.0.1",
-    "com.typesafe.akka" %% "akka-actor" % "2.5.2",
-    "com.typesafe.akka" %% "akka-testkit" % "2.5.2" % Test,
+    "com.typesafe.akka" %% "akka-actor" % akkaVersion,
+    "com.typesafe.akka" %% "akka-testkit" % akkaVersion % Test,
     // used for HTML parse
     "org.jsoup" % "jsoup" % "1.10.2",
     // used for URL validate
     "commons-validator" % "commons-validator" % "1.6",
-    "com.typesafe.akka" %% "akka-http" % "10.0.8",
-    "com.typesafe.akka" %% "akka-http-testkit" % "10.0.8" % Test
+    "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
+    "com.typesafe.akka" %% "akka-http-testkit" % akkaHttpVersion % Test
   )
 )
 

@@ -12,10 +12,10 @@ import akka.actor.{Actor, Props}
   * To reduce the numbe rof operations on the database store, we can keep in-memory
   * cache of popular URLs on each host shared by all threads.
   */
-object URLDeduplicator {
-  def props = Props(new URLDeduplicator)
+object UrlDeduplicator {
+  def props = Props(new UrlDeduplicator)
 }
 
-class URLDeduplicator extends Actor {
+class UrlDeduplicator extends Actor {
   override def receive: Receive = ???
 }

@@ -11,9 +11,9 @@ import akka.actor.{Actor, Props}
   * To avoid overload a server by downloading too frequently, we make each worker
   * thread have its separate sub-queue determined by the host name.
   */
-object URLFrontier {
-  def props = Props(new URLFrontier)
+object UrlFrontier {
+  def props = Props(new UrlFrontier)
 }
-class URLFrontier extends Actor{
+class UrlFrontier extends Actor{
   override def receive: Receive = ???
 }

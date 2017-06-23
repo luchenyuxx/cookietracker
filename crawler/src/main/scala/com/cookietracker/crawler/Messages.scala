@@ -27,3 +27,7 @@ case class Process(url: URL)
 case class Fetch(url: URL)
 
 case class FetchResult(response: Future[HttpResponse])
+
+case class DnsResolve(url: URL)
+
+case class DnsResolved(newUrl: Option[URL])

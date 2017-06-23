@@ -6,9 +6,9 @@ import akka.actor.{Actor, Props}
   * The URL filtering mechanism provides a customizable way to
   * control the set of URLs that are downloaded.
   */
-object URLFilter {
-  def props = Props(new URLFilter)
+object UrlFilter {
+  def props = Props(new UrlFilter)
 }
-class URLFilter extends Actor{
+class UrlFilter extends Actor{
   override def receive: Receive = ???
 }

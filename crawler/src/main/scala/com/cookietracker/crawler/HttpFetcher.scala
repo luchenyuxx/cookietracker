@@ -19,11 +19,11 @@ import akka.stream.ActorMaterializer
   *   Fetch(url) ~> FetchResult(responseFuture)
   * }}}
   */
-object HTTPFetcher {
-  def props = Props(new HTTPFetcher)
+object HttpFetcher {
+  def props = Props(new HttpFetcher)
 }
 
-class HTTPFetcher extends Actor with HaveLogger {
+class HttpFetcher extends Actor with HaveLogger {
   // Needed by Http module
   implicit val system = context.system
   implicit val materializer = ActorMaterializer()
