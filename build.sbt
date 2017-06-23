@@ -20,7 +20,9 @@ lazy val crawlerSettings = Seq(
     // used for HTML parse
     "org.jsoup" % "jsoup" % "1.10.2",
     // used for URL validate
-    "commons-validator" % "commons-validator" % "1.6"
+    "commons-validator" % "commons-validator" % "1.6",
+    "com.typesafe.akka" %% "akka-http" % "10.0.8",
+    "com.typesafe.akka" %% "akka-http-testkit" % "10.0.8" % Test
   )
 )
 
