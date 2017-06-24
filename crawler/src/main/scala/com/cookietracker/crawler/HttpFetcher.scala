@@ -1,6 +1,6 @@
 package com.cookietracker.crawler
 
-import akka.actor.{Actor, Props}
+import akka.actor.{Actor, ActorLogging, Props}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.{HttpRequest, Uri}
 import akka.stream.ActorMaterializer
@@ -23,14 +23,14 @@ object HttpFetcher {
   def props = Props(new HttpFetcher)
 }
 
-class HttpFetcher extends Actor with HaveLogger {
+class HttpFetcher extends Actor with ActorLogging {
   // Needed by Http module
   implicit val system = context.system
   implicit val materializer = ActorMaterializer()
 
   override def receive: Receive = {
     case Fetch(url) =>
-      logger.info(s"Fetching $url")
+      log.info(s"Fetching $url")
       sender() ! FetchResult(Http().singleRequest(HttpRequest(uri = Uri(url))))
   }
 }

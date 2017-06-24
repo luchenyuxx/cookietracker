@@ -26,7 +26,9 @@ lazy val crawlerSettings = Seq(
     // used for URL validate
     "commons-validator" % "commons-validator" % "1.6",
     "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
-    "com.typesafe.akka" %% "akka-http-testkit" % akkaHttpVersion % Test
+    "com.typesafe.akka" %% "akka-http-testkit" % akkaHttpVersion % Test,
+    // https://mvnrepository.com/artifact/com.google.guava/guava
+    "com.google.guava" % "guava" % "22.0"
   )
 )
 
