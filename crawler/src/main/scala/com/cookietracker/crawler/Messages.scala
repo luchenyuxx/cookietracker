@@ -2,7 +2,7 @@ package com.cookietracker.crawler
 
 import java.net.{InetAddress, URL}
 
-import akka.http.scaladsl.model.HttpResponse
+import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
 
 import scala.concurrent.Future
 
@@ -24,7 +24,7 @@ case class ReadyToProcess(url: URL)
 
 case class Process(url: URL)
 
-case class Fetch(url: URL)
+case class Fetch(request: HttpRequest)
 
 case class FetchResult(response: Future[HttpResponse])
 

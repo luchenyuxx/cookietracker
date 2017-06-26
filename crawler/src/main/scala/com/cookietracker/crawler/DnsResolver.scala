@@ -10,7 +10,8 @@ import com.google.common.cache.{Cache, CacheBuilder}
 import scala.util.{Failure, Success, Try}
 
 /**
-  * Caching DNS results to avoid querying DNS repeatedly
+  * Caching DNS results to avoid querying DNS repeatedly.
+  * We should use multiple DnsResolvers for performance.
   *
   * {{{
   *   DnsResolve(url) ~> DnsResolved(newUrl)
@@ -41,6 +42,7 @@ class DnsResolver extends Actor with ActorLogging {
             Try(InetAddress.getByName(hostName)) match {
               case Success(i) =>
                 DnsResolver.cache.put(hostName, i)
+                log.info(s"Resolved from DNS: $hostName -> ${i.getHostAddress}")
                 sender() ! DnsResolved(Some(i))
               case Failure(e) =>
                 log.error(s"Can't not resolve host name $hostName", e)
