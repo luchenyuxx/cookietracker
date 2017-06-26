@@ -15,7 +15,7 @@ object SiteCrawler {
   def props(supervisor: ActorRef, indexer: ActorRef) = Props(new SiteCrawler(supervisor, indexer))
 }
 
-class SiteCrawler(supervisor: ActorRef, indexer: ActorRef) extends Actor with HaveLogger{
+class SiteCrawler(supervisor: ActorRef, indexer: ActorRef) extends Actor with ActorLogging{
   val process = "Process next url"
   val readyToProcess = "Ready to process next url"
 
@@ -27,13 +27,13 @@ class SiteCrawler(supervisor: ActorRef, indexer: ActorRef) extends Actor with Ha
   def receive: Receive = {
     case Scrap(url) =>
       // wait some time, so we will not spam a website
-      logger.info(s"Received request to process ... $url")
+      log.info(s"Received request to process ... $url")
       toProcess = url :: toProcess
     case `process` =>
       toProcess match {
         case Nil =>
         case url :: list =>
-          logger.info(s"site scraping... $url")
+          log.info(s"site scraping... $url")
           toProcess = list
           (scraper ? Scrap(url)).mapTo[ScrapFinished]
             .recoverWith { case e => Future {

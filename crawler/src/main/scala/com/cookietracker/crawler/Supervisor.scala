@@ -11,7 +11,7 @@ object Supervisor {
   def props = Props(new Supervisor(None))
 }
 
-class Supervisor(socketPublisher: Option[ActorRef]) extends Actor with HaveLogger{
+class Supervisor(socketPublisher: Option[ActorRef]) extends Actor with ActorLogging{
   val indexer: ActorRef = context actorOf Indexer.props(self)
 
   val maxPages = 100
@@ -24,17 +24,17 @@ class Supervisor(socketPublisher: Option[ActorRef]) extends Actor with HaveLogge
 
   def receive: Receive = {
     case Start(url) =>
-      logger.info(s"starting $url")
+      log.info(s"starting $url")
       scrap(url)
     case ScrapFinished(url) =>
-      logger.info(s"scraping finished $url")
+      log.info(s"scraping finished $url")
     case IndexFinished(url, urls) =>
       if (numVisited < maxPages)
         urls.toSet.filter(l => !scrapCounts.contains(l)).foreach(scrap)
       checkAndShutdown(url)
     case ScrapFailure(url, reason) =>
       val retries: Int = scrapCounts(url)
-      logger.info(s"scraping failed $url, $retries, reason = $reason")
+      log.info(s"scraping failed $url, $retries, reason = $reason")
       if (retries < maxRetries) {
         countVisits(url)
         host2Actor(url.getHost) ! Scrap(url)
@@ -52,7 +52,7 @@ class Supervisor(socketPublisher: Option[ActorRef]) extends Actor with HaveLogge
 
   def scrap(url: URL): Unit = {
     val host = url.getHost
-    logger.info(s"Supervisor: going to scrap $host")
+    log.info(s"Supervisor: going to scrap $host")
     if (!host.isEmpty) {
       val actor = host2Actor.getOrElse(host, {
         val buff = context actorOf SiteCrawler.props(self, indexer)

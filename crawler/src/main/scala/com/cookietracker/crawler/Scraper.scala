@@ -2,7 +2,7 @@ package com.cookietracker.crawler
 
 import java.net.URL
 
-import akka.actor.{Actor, ActorRef, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import org.apache.commons.validator.routines.UrlValidator
 import org.jsoup.Jsoup
 
@@ -12,12 +12,12 @@ object Scraper {
   def props(indexer: ActorRef) = Props(new Scraper(indexer))
 }
 
-class Scraper(indexer: ActorRef) extends Actor with HaveLogger{
+class Scraper(indexer: ActorRef) extends Actor with ActorLogging{
   val urlValidator = new UrlValidator()
 
   def receive: Receive = {
     case Scrap(url) =>
-      logger.info(s"Scraper: scraping $url")
+      log.info(s"Scraper: scraping $url")
       val content = parse(url)
       sender() ! ScrapFinished(url)
       indexer ! Index(url, content)
