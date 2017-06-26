@@ -1,6 +1,6 @@
 package com.cookietracker.crawler
 
-import java.net.URL
+import java.net.{InetAddress, URL}
 
 import akka.http.scaladsl.model.HttpResponse
 
@@ -28,6 +28,6 @@ case class Fetch(url: URL)
 
 case class FetchResult(response: Future[HttpResponse])
 
-case class DnsResolve(url: URL)
+case class DnsResolve(hostName: String)
 
-case class DnsResolved(newUrl: Option[URL])
+case class DnsResolved(address: Option[InetAddress])
