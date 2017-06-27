@@ -1,11 +1,15 @@
 * About Cookie
   Software Engineering for Internet Applications [[http://philip.greenspun.com/seia/basics][Chapter Basics]]
-  
+
   [[https://tools.ietf.org/html/rfc6265][HTTP State Management Mechanism]]
-  
+
 * About Web Crawling
   [[http://foat.me/articles/crawling-with-akka/][Web Crawling With Akka]]
   [[file:resources/web_crawler.pdf][Architecture Web Crawler]]
 
 * About Network Visualization
   [[http://sigmajs.org/][Sigma]]
+
+* About URL filter or Blacklist
+[[https://www.chromium.org/administrators/url-blacklist-filter-format][URL BlackList Format]]
+[[https://www.netnanny.com/blog/where-to-get-a-good-internet-blacklist/][Some BlackList Contributed]]
