@@ -1,6 +1,10 @@
 package com.cookietracker.crawler
 
+import java.net.URL
+import java.util.concurrent.{ConcurrentHashMap, ConcurrentLinkedQueue}
+import scala.collection.JavaConversions._
 import akka.actor.{Actor, Props}
+
 
 /**
   * The URL frontier is the data structure that contains all the URLs that
@@ -13,7 +17,52 @@ import akka.actor.{Actor, Props}
   */
 object UrlFrontier {
   def props = Props(new UrlFrontier)
+
+  def getSubQueueByHost: ConcurrentHashMap[String, ConcurrentLinkedQueue[URL]] = subQueueByHost
+  def getHostByReady: ConcurrentHashMap[String, Boolean] = hostByReady
+  // A host contains a queue and a state
+  protected val subQueueByHost: ConcurrentHashMap[String, ConcurrentLinkedQueue[URL]] = new ConcurrentHashMap()
+  protected val hostByReady: ConcurrentHashMap[String, Boolean] = new ConcurrentHashMap()
 }
-class UrlFrontier extends Actor{
-  override def receive: Receive = ???
+class UrlFrontier extends Actor {
+  override def receive: Receive = {
+    case Enqueue(urls) =>
+      // When receive a bag of URLs, call a work thread to work on it
+      urls.foreach(url => {
+        Props(new FrontierTask(url))
+        sender() ! StoreUrlTask()
+      })
+    case Dequeue(previousUrl) =>
+      // When someone wants a URL, he will give his previous URL downloaded to make ready the host was taken
+      Props(new FrontierTask(previousUrl))
+      sender() ! LoadUrlTask()
+  }
+}
+
+class FrontierTask(url: URL) extends Actor {
+  override def receive: Receive = {
+    case StoreUrlTask() =>
+      val hostName = url.getHost
+      Option(UrlFrontier.getSubQueueByHost.get(hostName)) match {
+        case Some(aSubQueue) => aSubQueue.add(url)
+        case None => {
+          val subQueue: ConcurrentLinkedQueue[URL] = new ConcurrentLinkedQueue()
+          subQueue.add(url)
+          UrlFrontier.getSubQueueByHost.put(hostName, subQueue)
+          UrlFrontier.getHostByReady.put(hostName, true)
+        }
+      }
+      sender() ! EnqueueResult()
+    case LoadUrlTask() => {
+      if (url != null) {
+        UrlFrontier.getHostByReady.update(url.getHost, true)
+      }
+      for((hostname, isready) <- UrlFrontier.getHostByReady) {
+        if (isready) {
+          UrlFrontier.getHostByReady.update(hostname, false)
+          sender() ! DequeueResult(UrlFrontier.getSubQueueByHost.get(hostname).poll())
+        }
+      }
+    }
+  }
 }

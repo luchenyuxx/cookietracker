@@ -31,3 +31,15 @@ case class FetchResult(response: Future[HttpResponse])
 case class DnsResolve(hostName: String)
 
 case class DnsResolved(address: Option[InetAddress])
+
+case class Enqueue(urls: List[URL])
+
+case class StoreUrlTask()
+
+case class EnqueueResult()
+
+case class Dequeue(previousUrl: URL)
+
+case class LoadUrlTask()
+
+case class DequeueResult(urlLoaded: URL)
