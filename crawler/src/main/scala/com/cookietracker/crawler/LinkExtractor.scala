@@ -4,7 +4,6 @@ import java.io.InputStream
 import java.net.URL
 
 import akka.actor.{Actor, Props}
-import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.StreamConverters
 import org.apache.commons.validator.routines.UrlValidator
 import org.jsoup.Jsoup
@@ -23,8 +22,6 @@ object LinkExtractor {
 class LinkExtractor extends Actor{
 
   import LinkExtractor._
-
-  implicit val materializer = ActorMaterializer()
 
   override def receive: Receive = {
     case ExtractLink(url, e) =>
