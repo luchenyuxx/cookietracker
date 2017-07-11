@@ -47,7 +47,7 @@ class UrlFrontier extends Actor {
       if (previousUrl != null) {
         UrlFrontier.hostByReady.update(previousUrl.getHost, true)
       }
-      for((hostname, isready) <- UrlFrontier.hostByReady) {
+      for ((hostname, isready) <- UrlFrontier.hostByReady) {
         if (isready) {
           UrlFrontier.hostByReady.update(hostname, false)
           masterActor ! DequeueResult(UrlFrontier.subQueueByHost.get(hostname).poll())

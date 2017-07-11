@@ -1,16 +1,19 @@
 package com.cookietracker.crawler.test
 
+import java.net.URL
+
 import com.cookietracker.crawler.{DnsResolve, DnsResolved, DnsResolver}
 
 class DnsResolverTest extends AkkaTest{
-  val dnsResolver = system.actorOf(DnsResolver.props)
+  val dnsResolver = system.actorOf(DnsResolver.props, "dns-resolver")
   "A DnsResolver" must {
     "return None when bad host name" in {
-      dnsResolver ! DnsResolve("-----")
-      expectMsg(DnsResolved(None))
+      val url = new URL("http://nonexisthost")
+      dnsResolver ! DnsResolve(url)
+      expectMsg(DnsResolved(url, None))
     }
     "resolve domain name (check the log)" in {
-      dnsResolver ! DnsResolve("www.google.com")
+      dnsResolver ! DnsResolve(new URL("http://www.google.com"))
       expectMsgClass(classOf[DnsResolved])
     }
   }

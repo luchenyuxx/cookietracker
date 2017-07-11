@@ -6,27 +6,9 @@ import akka.http.scaladsl.model.{HttpEntity, HttpRequest, HttpResponse}
 
 import scala.concurrent.Future
 
-case class Start(url: URL)
+case class Fetch(baseUrl: URL, request: HttpRequest)
 
-case class Scrap(url: URL)
-
-case class Index(url: URL, content: Content)
-
-case class Content(title: String, meta: String, urls: List[URL])
-
-case class ScrapFinished(url: URL)
-
-case class IndexFinished(url: URL, urls: List[URL])
-
-case class ScrapFailure(url: URL, reason: Throwable)
-
-case class ReadyToProcess(url: URL)
-
-case class Process(url: URL)
-
-case class Fetch(request: HttpRequest)
-
-case class FetchResult(response: Future[HttpResponse])
+case class FetchResult(baseUrl: URL, response: Future[HttpResponse])
 
 case class ExtractLink(baseUrl: URL, entity: Future[HttpEntity])
 
@@ -34,9 +16,9 @@ case class ExtractResult(baseUrl: URL, links: Seq[URL])
 
 case class ExtractFailure(bastUrl: URL, throwable: Throwable)
 
-case class DnsResolve(hostName: String)
+case class DnsResolve(url: URL)
 
-case class DnsResolved(address: Option[InetAddress])
+case class DnsResolved(baseUrl: URL, address: Option[InetAddress])
 
 case class Enqueue(urls: List[URL])
 

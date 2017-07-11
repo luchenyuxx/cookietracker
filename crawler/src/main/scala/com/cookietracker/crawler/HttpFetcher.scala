@@ -28,8 +28,8 @@ class HttpFetcher extends Actor with ActorLogging {
   implicit val materializer = ActorMaterializer()
 
   override def receive: Receive = {
-    case Fetch(request) =>
+    case Fetch(url, request) =>
       log.info(s"Fetching $request")
-      sender() ! FetchResult(Http().singleRequest(request))
+      sender() ! FetchResult(url, Http().singleRequest(request))
   }
 }

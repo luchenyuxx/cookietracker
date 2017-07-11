@@ -1,19 +1,20 @@
 package com.cookietracker.crawler
 
+import java.net.URL
+
 import akka.actor.{ActorSystem, PoisonPill}
 
-import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.io.StdIn
 import scala.language.postfixOps
 
 object StartingPoint extends App {
   val system = ActorSystem()
-  val supervisor = system.actorOf(Supervisor.props)
+  val webCrawler = system.actorOf(WebCrawler.props, "web-crawler")
 
-  supervisor ! Start("https://foat.me")
+  webCrawler ! DequeueResult(new URL("http://en.wikipedia.org/wiki/Main_Page"))
+  println("Web crawler started, press RETURN to exit.")
+  StdIn.readLine()
 
-  Await.result(system.whenTerminated, 10 minutes)
-
-  supervisor ! PoisonPill
+  webCrawler ! PoisonPill
   system.terminate
 }

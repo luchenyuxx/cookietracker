@@ -27,27 +27,28 @@ object DnsResolver {
 
 class DnsResolver extends Actor with ActorLogging {
   override def receive: Receive = {
-    case DnsResolve(hostName) =>
+    case DnsResolve(url) =>
+      val hostName = url.getHost
       if (DnsResolver.badHostNames.contains(hostName)) {
         log.info(s"Bad host name: $hostName")
-        sender() ! DnsResolved(None)
+        sender() ! DnsResolved(url, None)
       }
       else
         Option(DnsResolver.cache.getIfPresent(hostName)) match {
           case Some(a) =>
             log.info(s"Resolved from cache: $hostName -> ${a.getHostAddress}")
-            sender() ! DnsResolved(Some(a))
+            sender() ! DnsResolved(url, Some(a))
           case None =>
             log.info(s"Host name $hostName not in cache, trying to resolve it.")
             Try(InetAddress.getByName(hostName)) match {
               case Success(i) =>
                 DnsResolver.cache.put(hostName, i)
                 log.info(s"Resolved from DNS: $hostName -> ${i.getHostAddress}")
-                sender() ! DnsResolved(Some(i))
+                sender() ! DnsResolved(url, Some(i))
               case Failure(e) =>
                 log.error(s"Can't not resolve host name $hostName", e)
                 DnsResolver.badHostNames.add(hostName)
-                sender() ! DnsResolved(None)
+                sender() ! DnsResolved(url, None)
             }
         }
   }
