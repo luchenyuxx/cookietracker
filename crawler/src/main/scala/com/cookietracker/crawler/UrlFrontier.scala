@@ -2,8 +2,9 @@ package com.cookietracker.crawler
 
 import java.net.URL
 import java.util.concurrent.{ConcurrentHashMap, ConcurrentLinkedQueue}
+
 import scala.collection.JavaConversions._
-import akka.actor.{Actor, Props}
+import akka.actor.{Actor, ActorRef, Props}
 
 
 /**
@@ -18,27 +19,44 @@ import akka.actor.{Actor, Props}
 object UrlFrontier {
   def props = Props(new UrlFrontier)
 
-  def getSubQueueByHost: ConcurrentHashMap[String, ConcurrentLinkedQueue[URL]] = subQueueByHost
-  def getHostByReady: ConcurrentHashMap[String, Boolean] = hostByReady
   // A host contains a queue and a state
-  protected val subQueueByHost: ConcurrentHashMap[String, ConcurrentLinkedQueue[URL]] = new ConcurrentHashMap()
-  protected val hostByReady: ConcurrentHashMap[String, Boolean] = new ConcurrentHashMap()
+  val subQueueByHost: ConcurrentHashMap[String, ConcurrentLinkedQueue[URL]] = new ConcurrentHashMap()
+  val hostByReady: ConcurrentHashMap[String, Boolean] = new ConcurrentHashMap()
 }
+
 class UrlFrontier extends Actor {
+  val masterActor: ActorRef = context.actorOf(WebCrawler.props)
   override def receive: Receive = {
     case Enqueue(urls) =>
       // When receive a bag of URLs, call a work thread to work on it
       urls.foreach(url => {
-        Props(new FrontierTask(url))
-        sender() ! StoreUrlTask()
+        val hostName = url.getHost
+        Option(UrlFrontier.subQueueByHost.get(hostName)) match {
+          case Some(aSubQueue) => aSubQueue.add(url)
+          case None => {
+            val subQueue: ConcurrentLinkedQueue[URL] = new ConcurrentLinkedQueue()
+            subQueue.add(url)
+            UrlFrontier.subQueueByHost.put(hostName, subQueue)
+            UrlFrontier.hostByReady.put(hostName, true)
+          }
+        }
+        sender() ! EnqueueResult()
       })
     case Dequeue(previousUrl) =>
       // When someone wants a URL, he will give his previous URL downloaded to make ready the host was taken
-      Props(new FrontierTask(previousUrl))
-      sender() ! LoadUrlTask()
+      if (previousUrl != null) {
+        UrlFrontier.hostByReady.update(previousUrl.getHost, true)
+      }
+      for((hostname, isready) <- UrlFrontier.hostByReady) {
+        if (isready) {
+          UrlFrontier.hostByReady.update(hostname, false)
+          masterActor ! DequeueResult(UrlFrontier.subQueueByHost.get(hostname).poll())
+        }
+      }
   }
 }
 
+/*
 class FrontierTask(url: URL) extends Actor {
   override def receive: Receive = {
     case StoreUrlTask() =>
@@ -66,3 +84,4 @@ class FrontierTask(url: URL) extends Actor {
     }
   }
 }
+*/
