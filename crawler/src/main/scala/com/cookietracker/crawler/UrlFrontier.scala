@@ -3,9 +3,10 @@ package com.cookietracker.crawler
 import java.net.URL
 import java.util.concurrent.{ConcurrentHashMap, ConcurrentLinkedQueue}
 
-import scala.collection.JavaConversions._
 import akka.actor.{Actor, ActorRef, Props}
-
+import scala.concurrent.duration._
+import scala.collection.JavaConversions._
+import scala.language.postfixOps
 
 /**
   * The URL frontier is the data structure that contains all the URLs that
@@ -25,7 +26,9 @@ object UrlFrontier {
 }
 
 class UrlFrontier extends Actor {
-  val masterActor: ActorRef = context.actorOf(WebCrawler.props)
+  val resolver: ActorRef = context.actorOf(DnsResolver.props)
+  val hostTimer: ActorRef = context.actorOf(HostTimer.props)
+
   override def receive: Receive = {
     case Enqueue(urls) =>
       // When receive a bag of URLs, call a work thread to work on it
@@ -42,19 +45,35 @@ class UrlFrontier extends Actor {
         }
         sender() ! EnqueueResult()
       })
-    case Dequeue(previousUrl) =>
-      // When someone wants a URL, he will give his previous URL downloaded to make ready the host was taken
-      if (previousUrl != null) {
-        UrlFrontier.hostByReady.update(previousUrl.getHost, true)
-      }
-      for((hostname, isready) <- UrlFrontier.hostByReady) {
+    case Dequeue() =>
+      hostTimer ! ReleaseHost()
+      for ((hostname, isready) <- UrlFrontier.hostByReady) {
         if (isready) {
           UrlFrontier.hostByReady.update(hostname, false)
-          masterActor ! DequeueResult(UrlFrontier.subQueueByHost.get(hostname).poll())
+          resolver ! DequeueResult(UrlFrontier.subQueueByHost.get(hostname).poll())
         }
       }
   }
 }
+
+//TODO not finished, need to change for the timer
+case class ReleaseHost()
+
+object HostTimer {
+  def props = Props(new HostTimer)
+}
+
+class HostTimer extends Actor {
+  context.system.scheduler.schedule(0 seconds, 5 seconds)
+
+  override def receive: Receive = {
+    case ReleaseHost() => {
+      for ((hostname, isready) <- UrlFrontier.hostByReady)
+        if (!isready) UrlFrontier.hostByReady.update(hostname, true)
+    }
+  }
+}
+
 
 /*
 class FrontierTask(url: URL) extends Actor {
