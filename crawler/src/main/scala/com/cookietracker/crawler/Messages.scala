@@ -31,3 +31,7 @@ case class Dequeue(previousUrl: URL)
 case class LoadUrlTask()
 
 case class DequeueResult(urlLoaded: URL)
+
+case class Deduplicate(baseUrl: URL, urls: Seq[URL])
+
+case class DeduplicateResult(baseUrl: URL, urls: Seq[URL])

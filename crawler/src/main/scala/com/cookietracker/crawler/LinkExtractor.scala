@@ -18,7 +18,7 @@ object LinkExtractor {
   def props = Props(new LinkExtractor)
 
   private def extractFromInputStream(i: InputStream, baseUrl: URL): Seq[URL] = {
-    Jsoup.parse(i, null, baseUrl.toExternalForm).getElementsByTag("a").toIndexedSeq.map(_.attr("href")).filter(s => UrlValidator.getInstance().isValid(s)).distinct.map(new URL(_))
+    Jsoup.parse(i, null, baseUrl.toExternalForm).getElementsByTag("a").toIndexedSeq.map(_.attr("href")).distinct.filter(s => UrlValidator.getInstance().isValid(s)).map(new URL(_))
   }
 }
 class LinkExtractor extends Actor with ActorLogging{
