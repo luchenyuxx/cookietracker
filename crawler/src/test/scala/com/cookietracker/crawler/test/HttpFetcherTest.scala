@@ -8,17 +8,17 @@ import akka.util.Timeout
 import com.cookietracker.crawler.{Fetch, FetchResult, HttpFetcher}
 
 import scala.concurrent.Await
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
 class HttpFetcherTest extends AkkaTest {
   "A HttpFetcher" must {
     "successfully fetch google.com" in {
       implicit val timeout = Timeout(3 seconds)
-      val httpFetcher = system.actorOf(HttpFetcher.props)
+      val httpFetcher = system.actorOf(HttpFetcher.props, "http-fetcher")
+      implicit val contextExecutor = system.dispatcher
       val targetUrl = new URL("http://www.google.com")
       val requests = HttpRequest(uri = Uri(targetUrl.toExternalForm))
-      val r = httpFetcher ? Fetch(requests)
+      val r = httpFetcher ? Fetch(targetUrl, requests)
       val f = r.mapTo[FetchResult].flatMap(_.response)
       Await.result(f, 3 seconds)
       f onFailure {

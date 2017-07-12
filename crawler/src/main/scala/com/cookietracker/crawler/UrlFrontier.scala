@@ -3,9 +3,11 @@ package com.cookietracker.crawler
 import java.net.URL
 import java.util.concurrent.{ConcurrentHashMap, ConcurrentLinkedQueue}
 
-import akka.actor.{Actor, ActorRef, Props}
+import akka.actor.{Actor, ActorRef, ActorSystem, Props}
+
 import scala.concurrent.duration._
 import scala.collection.JavaConversions._
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
 
 /**
@@ -27,7 +29,6 @@ object UrlFrontier {
 
 class UrlFrontier extends Actor {
   val resolver: ActorRef = context.actorOf(DnsResolver.props)
-  val hostTimer: ActorRef = context.actorOf(HostTimer.props)
 
   override def receive: Receive = {
     case Enqueue(urls) =>
@@ -46,25 +47,33 @@ class UrlFrontier extends Actor {
         sender() ! EnqueueResult()
       })
     case Dequeue() =>
-      hostTimer ! ReleaseHost()
+      // When someone wants a URL, he will give his previous URL downloaded to make ready the host was taken
       for ((hostname, isready) <- UrlFrontier.hostByReady) {
         if (isready) {
           UrlFrontier.hostByReady.update(hostname, false)
           resolver ! DequeueResult(UrlFrontier.subQueueByHost.get(hostname).poll())
         }
       }
+      letHostReady()
+  }
+
+  def letHostReady(): Unit = {
+    if (!UrlFrontier.hostByReady.isEmpty) {
+      for ((hostname, isready) <- UrlFrontier.hostByReady)
+        if (!isready) UrlFrontier.hostByReady.update(hostname, true)
+    }
   }
 }
 
-//TODO not finished, need to change for the timer
-case class ReleaseHost()
+//TODO timer
+/*case class ReleaseHost()
 
 object HostTimer {
   def props = Props(new HostTimer)
 }
 
 class HostTimer extends Actor {
-  context.system.scheduler.schedule(0 seconds, 5 seconds)
+  ActorSystem().scheduler.schedule(0 seconds, 5 seconds)
 
   override def receive: Receive = {
     case ReleaseHost() => {
@@ -72,7 +81,7 @@ class HostTimer extends Actor {
         if (!isready) UrlFrontier.hostByReady.update(hostname, true)
     }
   }
-}
+}*/
 
 
 /*
