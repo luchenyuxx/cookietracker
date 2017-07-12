@@ -3,11 +3,9 @@ package com.cookietracker.crawler
 import java.net.URL
 import java.util.concurrent.{ConcurrentHashMap, ConcurrentLinkedQueue}
 
-import akka.actor.{Actor, ActorRef, ActorSystem, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 
-import scala.concurrent.duration._
 import scala.collection.JavaConversions._
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
 
 /**
@@ -27,13 +25,14 @@ object UrlFrontier {
   val hostByReady: ConcurrentHashMap[String, Boolean] = new ConcurrentHashMap()
 }
 
-class UrlFrontier extends Actor {
+class UrlFrontier extends Actor with ActorLogging {
   val resolver: ActorRef = context.actorOf(DnsResolver.props)
 
   override def receive: Receive = {
     case Enqueue(urls) =>
       // When receive a bag of URLs, call a work thread to work on it
       urls.foreach(url => {
+        log.info(s"Enqueue $url")
         val hostName = url.getHost
         Option(UrlFrontier.subQueueByHost.get(hostName)) match {
           case Some(aSubQueue) => aSubQueue.add(url)
@@ -44,12 +43,13 @@ class UrlFrontier extends Actor {
             UrlFrontier.hostByReady.put(hostName, true)
           }
         }
-        sender() ! EnqueueResult()
+        //sender() ! EnqueueResult()
       })
     case Dequeue() =>
       // When someone wants a URL, he will give his previous URL downloaded to make ready the host was taken
       for ((hostname, isready) <- UrlFrontier.hostByReady) {
         if (isready) {
+          log.info(s"Dequeue $hostname")
           UrlFrontier.hostByReady.update(hostname, false)
           resolver ! DequeueResult(UrlFrontier.subQueueByHost.get(hostname).poll())
         }
@@ -60,7 +60,10 @@ class UrlFrontier extends Actor {
   def letHostReady(): Unit = {
     if (!UrlFrontier.hostByReady.isEmpty) {
       for ((hostname, isready) <- UrlFrontier.hostByReady)
-        if (!isready) UrlFrontier.hostByReady.update(hostname, true)
+        if (!isready) {
+          log.info(s"$hostname get ready")
+          UrlFrontier.hostByReady.update(hostname, true)
+        }
     }
   }
 }
