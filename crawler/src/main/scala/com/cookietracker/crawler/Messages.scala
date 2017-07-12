@@ -20,7 +20,7 @@ case class DnsResolve(url: URL)
 
 case class DnsResolved(baseUrl: URL, address: Option[InetAddress])
 
-case class Enqueue(urls: List[URL])
+case class Enqueue(urls: Seq[URL])
 
 case class StoreUrlTask()
 
@@ -35,3 +35,7 @@ case class DequeueResult(urlLoaded: URL)
 case class Deduplicate(baseUrl: URL, urls: Seq[URL])
 
 case class DeduplicateResult(baseUrl: URL, urls: Seq[URL])
+
+case class FilterUrl(baseUrl: URL, urls: Seq[URL])
+
+case class FilterResult(baseUrl: URL, urls: Seq[URL])

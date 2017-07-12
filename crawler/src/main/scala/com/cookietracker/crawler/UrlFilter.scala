@@ -10,5 +10,8 @@ object UrlFilter {
   def props = Props(new UrlFilter)
 }
 class UrlFilter extends Actor{
-  override def receive: Receive = ???
+  override def receive: Receive = {
+    case FilterUrl(baseUrl, urls) =>
+      sender() ! FilterResult(baseUrl, urls)
+  }
 }

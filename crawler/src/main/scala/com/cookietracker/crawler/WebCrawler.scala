@@ -1,7 +1,5 @@
 package com.cookietracker.crawler
 
-import java.net.URL
-
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.http.scaladsl.model.{HttpRequest, Uri}
 import akka.routing.BalancingPool
@@ -36,7 +34,11 @@ class WebCrawler extends Actor with ActorLogging {
       linkExtractors ! ExtractLink(url, responseFuture.map(_.entity))
     // Enqueue the extracted links to UrlFrontier
     case ExtractResult(url, links) =>
-      urlFrontier ! Enqueue(links.toList)
+      urlFilter ! FilterUrl(url, links)
+    case FilterResult(baseUrl, urls) =>
+      urlDeduplicator ! Deduplicate(baseUrl, urls)
+    case DeduplicateResult(baseUrl, urls) =>
+      urlFrontier ! Enqueue(urls)
     case x => log.warning(s"Unknown message $x")
   }
 }

@@ -4,7 +4,7 @@ import java.util
 import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 
-import akka.actor.{Actor, Props}
+import akka.actor.{Actor, ActorLogging, Props}
 
 import scala.collection.JavaConversions._
 
@@ -24,13 +24,14 @@ object UrlDeduplicator {
   val seenUrl: util.Set[String] = Collections.newSetFromMap[String](new ConcurrentHashMap())
 }
 
-class UrlDeduplicator extends Actor {
+class UrlDeduplicator extends Actor with ActorLogging {
 
   import UrlDeduplicator._
 
   override def receive: Receive = {
     case Deduplicate(baseUrl, urls) =>
-      val deduplicated = urls.filter(u => seenUrl.contains(u.toExternalForm))
+      val deduplicated = urls.filter(u => !seenUrl.contains(u.toExternalForm))
+      log.info(s"Deduplicated urls from ${urls.size} to ${deduplicated.size}")
       seenUrl.addAll(deduplicated.map(_.toExternalForm))
       sender() ! DeduplicateResult(baseUrl, deduplicated)
   }
