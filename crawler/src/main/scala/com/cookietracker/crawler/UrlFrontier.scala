@@ -6,6 +6,7 @@ import java.util.concurrent.{ConcurrentHashMap, ConcurrentLinkedQueue}
 import akka.actor.{Actor, ActorLogging, Props}
 
 import scala.collection.JavaConversions._
+import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
@@ -30,7 +31,7 @@ class UrlFrontier extends Actor with ActorLogging {
 
   import UrlFrontier._
 
-  implicit val contextExecutor = context.dispatcher
+  implicit val contextExecutor: ExecutionContextExecutor = context.dispatcher
 
   override def receive: Receive = {
     case Enqueue(urls) =>
@@ -38,12 +39,11 @@ class UrlFrontier extends Actor with ActorLogging {
         val hostName = url.getHost
         Option(subQueueByHost.get(hostName)) match {
           case Some(aSubQueue) => aSubQueue.add(url)
-          case None => {
+          case None =>
             val subQueue: ConcurrentLinkedQueue[URL] = new ConcurrentLinkedQueue()
             subQueue.add(url)
             subQueueByHost.put(hostName, subQueue)
             hostByReady.put(hostName, true)
-          }
         }
       })
       log.info(s"Enqueue ${urls.size} urls")

@@ -26,7 +26,7 @@ class HomeController @Inject() (implicit system: ActorSystem, materializer: Mate
     Ok(views.html.index())
   }
 
-  def socket = WebSocket.accept[JsValue, JsValue] { implicit request =>
+  def socket: WebSocket = WebSocket.accept[JsValue, JsValue] { implicit request =>
     ActorFlow.actorRef(out => WebSocketActor.props(out))
   }
 }

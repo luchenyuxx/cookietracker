@@ -22,8 +22,7 @@ class WebCrawler extends Actor with ActorLogging {
   implicit val contextExecutor: ExecutionContextExecutor = context.dispatcher
 
   val httpFetchers: Seq[ActorRef] = List.fill(5)(context.actorOf(HttpFetcher.props))
-//  lazy val dnsResolver: ActorRef = context.actorOf(DnsResolver.props, "dns-resolver")
-val linkExtractors: ActorRef = context.actorOf(BalancingPool(5).props(LinkExtractor.props), "link-extractor-router")
+  val linkExtractors: ActorRef = context.actorOf(BalancingPool(5).props(LinkExtractor.props), "link-extractor-router")
   val urlFrontier: ActorRef = context.actorOf(UrlFrontier.props, "url-frontier")
   val urlFilter: ActorRef = context.actorOf(UrlFilter.props, "url-filter")
   val urlDeduplicator: ActorRef = context.actorOf(UrlDeduplicator.props, "url-deduplicator")
@@ -35,7 +34,7 @@ val linkExtractors: ActorRef = context.actorOf(BalancingPool(5).props(LinkExtrac
       */
     case GimmeWork =>
       val fetcher = sender()
-      implicit val timeout = Timeout(3 seconds)
+      implicit val timeout = Timeout(3.seconds)
       urlFrontier ? Dequeue onSuccess {
         case DequeueResult(url) =>
           Try(Fetch(url, HttpRequest(uri = Uri(url.toExternalForm)))) match {
@@ -46,7 +45,7 @@ val linkExtractors: ActorRef = context.actorOf(BalancingPool(5).props(LinkExtrac
           }
         case EmptyOrBusyQueue =>
           log.info("Empty or busy queue, will retry in 1 second")
-          context.system.scheduler.scheduleOnce(1 second)(self.tell(GimmeWork, fetcher))(contextExecutor)
+          context.system.scheduler.scheduleOnce(1.second)(self.tell(GimmeWork, fetcher))(contextExecutor)
       }
     //    case DequeueResult(url) =>
     //      httpFetchers ! Fetch(url, HttpRequest(uri = Uri(url)))
@@ -57,7 +56,7 @@ val linkExtractors: ActorRef = context.actorOf(BalancingPool(5).props(LinkExtrac
       urlFilter ! FilterUrl(url, links)
     case FilterResult(baseUrl, urls) =>
       urlDeduplicator ! Deduplicate(baseUrl, urls)
-    case DeduplicateResult(baseUrl, urls) =>
+    case DeduplicateResult(_, urls) =>
       urlFrontier ! Enqueue(urls)
     case Start => httpFetchers.foreach(_ ! WorkAvailable)
     case x => log.warning(s"Unknown message $x")

@@ -1,6 +1,6 @@
 package com.cookietracker.crawler
 
-import akka.actor.{Actor, ActorLogging, Props}
+import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.StatusCodes
 import akka.stream.ActorMaterializer
@@ -26,7 +26,7 @@ object HttpFetcher {
 
 class HttpFetcher extends Actor with ActorLogging {
   // Needed by Http module
-  implicit val system = context.system
+  implicit val system: ActorSystem = context.system
   implicit val materializer = ActorMaterializer()
 
   override def receive: Receive = {
@@ -38,7 +38,8 @@ class HttpFetcher extends Actor with ActorLogging {
       val fetchFuture = Http().singleRequest(request)
       fetchFuture onSuccess {
         case r =>
-          if (r.status.equals(StatusCodes.OK))
+          val statusOk = r.status.equals(StatusCodes.OK)
+          if (statusOk)
             futureSender ! FetchResult(url, r)
           else {
             log.warning(s"HTTP fetch return bad status code ${r.status} on $url")

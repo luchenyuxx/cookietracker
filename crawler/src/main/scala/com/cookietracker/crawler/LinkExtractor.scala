@@ -33,18 +33,22 @@ class LinkExtractor extends Actor with ActorLogging {
 
   override def receive: Receive = {
     case ExtractLink(url, e) =>
-      log.info(s"Extracting links in $url")
-      val futureReceiver = sender()
-      Try {
-        val inputStream = e.dataBytes.runWith(StreamConverters.asInputStream())
-        extractFromInputStream(inputStream, url)
-      } match {
-        case Success(links) =>
-          log.info(s"Success to extract ${links.size} links in $url")
-          futureReceiver ! ExtractResult(url, links)
-        case Failure(t) =>
-          log.error(t, s"Fail to extract links in $url")
-          futureReceiver ! ExtractFailure(url, t)
+      if (e.getContentType().mediaType.isText) {
+        log.info(s"Extracting links in $url")
+        val futureReceiver = sender()
+        Try {
+          val inputStream = e.dataBytes.runWith(StreamConverters.asInputStream())
+          extractFromInputStream(inputStream, url)
+        } match {
+          case Success(links) =>
+            log.info(s"Success to extract ${links.size} links in $url")
+            futureReceiver ! ExtractResult(url, links)
+          case Failure(t) =>
+            log.error(t, s"Fail to extract links in $url")
+            futureReceiver ! ExtractFailure(url, t)
+        }
+      } else {
+        log.warning(s"Won't extract $url with content type ${e.getContentType()}")
       }
       /** Consuming (or discarding) the Entity of a request is mandatory!
         * If accidentally left neither consumed or discarded Akka HTTP will assume the incoming data should remain back-pressured,

@@ -1,6 +1,8 @@
 package com.cookietracker.crawler
 
-import akka.actor.{Actor, Props}
+import java.net.URLConnection
+
+import akka.actor.{Actor, ActorLogging, Props}
 
 /**
   * The URL filtering mechanism provides a customizable way to
@@ -9,9 +11,14 @@ import akka.actor.{Actor, Props}
 object UrlFilter {
   def props = Props(new UrlFilter)
 }
-class UrlFilter extends Actor{
+
+class UrlFilter extends Actor with ActorLogging {
   override def receive: Receive = {
     case FilterUrl(baseUrl, urls) =>
-      sender() ! FilterResult(baseUrl, urls)
+      val filtered = urls.filter { u =>
+        Option(URLConnection.guessContentTypeFromName(u.getPath)).forall(_.contains("text"))
+      }
+      log.info(s"Filter ${urls.size} urls to ${filtered.size}")
+      sender() ! FilterResult(baseUrl, filtered)
   }
 }
