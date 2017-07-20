@@ -13,3 +13,8 @@
 * About URL filter or Blacklist
 [[https://www.chromium.org/administrators/url-blacklist-filter-format][URL BlackList Format]]
 [[https://www.netnanny.com/blog/where-to-get-a-good-internet-blacklist/][Some BlackList Contributed]]
+
+* About Akka Tracing
+  [[https://github.com/openzipkin/zipkin][zipkin]]
+  [[https://github.com/levkhomich/akka-tracing][zipkin akka tracing extension]]
+  [[https://github.com/kamon-io/Kamon][Kamon]]
