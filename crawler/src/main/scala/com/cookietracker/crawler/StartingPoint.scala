@@ -4,6 +4,8 @@ import java.net.URL
 
 import akka.actor.{ActorSystem, PoisonPill}
 
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
 import scala.io.StdIn
 import scala.language.postfixOps
 
@@ -19,5 +21,5 @@ object StartingPoint extends App {
   StdIn.readLine()
 
   webCrawler ! PoisonPill
-  system.terminate
+  Await.result(system.terminate(), Duration.Inf)
 }
