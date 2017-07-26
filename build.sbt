@@ -4,7 +4,7 @@ name := """cookietracker"""
 lazy val akkaVersion = "2.4.19"
 lazy val akkaHttpVersion = "10.0.8"
 
-lazy val common = project in file("common")
+lazy val common = (project in file("common")).settings(commonSettings)
 
 lazy val server = (project in file("server")).dependsOn(common).enablePlugins(PlayScala).settings(serverSettings)
 
@@ -51,5 +51,12 @@ lazy val serverSettings = Seq(
     "org.xerial" % "sqlite-jdbc" % "3.16.1",
     // https://mvnrepository.com/artifact/org.postgresql/postgresql
     "org.postgresql" % "postgresql" % "42.1.1"
+  )
+)
+
+lazy val commonSettings = Seq(
+  libraryDependencies ++= Seq(
+    // Used for mongodb, driver for scala
+    "org.mongodb.scala" %% "mongo-scala-driver" % "2.1.0"
   )
 )
