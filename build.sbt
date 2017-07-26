@@ -4,7 +4,7 @@ name := """cookietracker"""
 lazy val akkaVersion = "2.4.19"
 lazy val akkaHttpVersion = "10.0.8"
 
-lazy val common = project in file("common")
+lazy val common = (project in file("common")).settings(commonSettings)
 
 lazy val server = (project in file("server")).dependsOn(common).enablePlugins(PlayScala).settings(serverSettings)
 
@@ -15,6 +15,12 @@ inThisBuild(List(
   scalaVersion := "2.11.11",
   version := "0.1.0-SNAPSHOT"
 ))
+
+lazy val commonSettings = Seq(
+  libraryDependencies ++= Seq(
+    "org.mongodb.scala" %% "mongo-scala-driver" % "2.1.0"
+  )
+)
 
 lazy val crawlerSettings = Seq(
   libraryDependencies ++= Seq(
