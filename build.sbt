@@ -16,6 +16,12 @@ inThisBuild(List(
   version := "0.1.0-SNAPSHOT"
 ))
 
+lazy val commonSettings = Seq(
+  libraryDependencies ++= Seq(
+    "org.mongodb.scala" %% "mongo-scala-driver" % "2.1.0"
+  )
+)
+
 lazy val crawlerSettings = Seq(
   libraryDependencies ++= Seq(
     "org.scalatest" %% "scalatest" % "3.0.1",
