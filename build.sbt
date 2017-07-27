@@ -59,10 +59,3 @@ lazy val serverSettings = Seq(
     "org.postgresql" % "postgresql" % "42.1.1"
   )
 )
-
-lazy val commonSettings = Seq(
-  libraryDependencies ++= Seq(
-    // Used for mongodb, driver for scala
-    "org.mongodb.scala" %% "mongo-scala-driver" % "2.1.0"
-  )
-)
