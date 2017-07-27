@@ -1,6 +1,6 @@
 package com.cookietracker.common.data
 
-import com.cookietracker.database.mongodb.MongodbManager
+import com.cookietracker.common.database.mongodb.MongodbManager
 import org.mongodb.scala.model.Filters._
 import org.mongodb.scala._
 import org.mongodb.scala.model.Updates._
