@@ -26,6 +26,7 @@ class WebCrawler extends Actor with ActorLogging {
   val urlFrontier: ActorRef = context.actorOf(UrlFrontier.props, "url-frontier")
   val urlFilter: ActorRef = context.actorOf(UrlFilter.props, "url-filter")
   val urlDeduplicator: ActorRef = context.actorOf(UrlDeduplicator.props, "url-deduplicator")
+  val cookieManager: ActorRef = context.actorOf(CookieManager.props, "cookie-recorder")
 
   override def receive: Receive = {
     /** When receive a URL from UrlFrontier, we send it to DnsResolver
@@ -37,15 +38,19 @@ class WebCrawler extends Actor with ActorLogging {
       implicit val timeout = Timeout(3.seconds)
       urlFrontier ? Dequeue onSuccess {
         case DequeueResult(url) =>
-          Try {
-            val userAgentHeader: HttpHeader = headers.`User-Agent`("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36")
-            val request = HttpRequest(uri = Uri(url.toExternalForm), headers = List(userAgentHeader))
-            Fetch(url, request)
-          } match {
-            case Success(v) => fetcher ! v
-            case Failure(t) =>
-              log.error("error when creating HTTP request", t)
-              self.tell(GimmeWork, fetcher)
+          cookieManager ? GetCookie(url) onSuccess {
+            case GetCookieResult(_, cookies) =>
+              Try {
+                val userAgentHeader: HttpHeader = headers.`User-Agent`("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36")
+                val cookieHeader: HttpHeader = headers.Cookie(cookies.map(_.pair()).toIndexedSeq)
+                val request = HttpRequest(uri = Uri(url.toExternalForm), headers = List(userAgentHeader, cookieHeader))
+                Fetch(url, request)
+              } match {
+                case Success(v) => fetcher ! v
+                case Failure(t) =>
+                  log.error("error when creating HTTP request", t)
+                  self.tell(GimmeWork, fetcher)
+              }
           }
         case EmptyOrBusyQueue =>
           log.info("Empty or busy queue, will retry in 1 second")
@@ -55,9 +60,16 @@ class WebCrawler extends Actor with ActorLogging {
     //      httpFetchers ! Fetch(url, HttpRequest(uri = Uri(url)))
     // Having the fetch result, we extract links from it
     case FetchResult(url, response) =>
+      val cookies = response.headers.filter {
+        case _: headers.`Set-Cookie` => true
+        case _ => false
+      }.asInstanceOf[Seq[headers.`Set-Cookie`]].map(_.cookie)
+      if (cookies.nonEmpty) {
+        cookieManager ! RecordCookie(url, cookies)
+      }
       linkExtractors ! ExtractLink(url, response.entity)
     case ExtractResult(url, links) =>
-      urlFilter ! FilterUrl(url, links)
+      urlFilter ! FilterUrl(url, links.hrefLinks)
     case FilterResult(baseUrl, urls) =>
       urlDeduplicator ! Deduplicate(baseUrl, urls)
     case DeduplicateResult(_, urls) =>

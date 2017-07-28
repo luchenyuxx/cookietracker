@@ -8,6 +8,7 @@ import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Sink, StreamConverters}
 import org.apache.commons.validator.routines.UrlValidator
 import org.jsoup.Jsoup
+import org.jsoup.nodes.Document
 
 import scala.collection.JavaConversions._
 import scala.concurrent.ExecutionContextExecutor
@@ -19,9 +20,24 @@ import scala.util.{Failure, Success, Try}
 object LinkExtractor {
   def props = Props(new LinkExtractor)
 
-  private def extractFromInputStream(i: InputStream, baseUrl: URL): Seq[URL] = {
-    Jsoup.parse(i, null, baseUrl.toExternalForm).getElementsByTag("a").toIndexedSeq.map(_.attr("href")).distinct.filter(s => UrlValidator.getInstance().isValid(s)).map(new URL(_))
+  case class LinkContainer(hrefLinks: Seq[URL], srcLinks: Seq[URL])
+
+  private val HREF_LINK_NAME = "href"
+  private val SRC_LINK_NAME = "src"
+
+  private def extractFromInputStream(i: InputStream, baseUrl: URL): LinkContainer = {
+    val document = Jsoup.parse(i, null, baseUrl.toExternalForm)
+    new LinkContainer(getLinksByAttribute(document, HREF_LINK_NAME, baseUrl), getLinksByAttribute(document, SRC_LINK_NAME, baseUrl))
   }
+
+  private def getLinksByAttribute(document: Document, attributeName: String, baseUrl: URL): Seq[URL] = {
+    val urlValidator = UrlValidator.getInstance()
+    document.getElementsByAttribute(attributeName).map(_.attr(attributeName)).distinct.map(preprocess(_, baseUrl)).filter(urlValidator.isValid).map(new URL(_))
+  }
+
+  private def preprocess(attribute: String, baseUrl: URL): String = if (attribute.startsWith("//")) {
+    baseUrl.getProtocol + ":" + attribute
+  } else attribute
 }
 
 class LinkExtractor extends Actor with ActorLogging {
@@ -41,7 +57,7 @@ class LinkExtractor extends Actor with ActorLogging {
           extractFromInputStream(inputStream, url)
         } match {
           case Success(links) =>
-            log.info(s"Success to extract ${links.size} links in $url")
+            log.info(s"Success to extract ${links.hrefLinks.size} href links, ${links.srcLinks.size} src links in $url")
             futureReceiver ! ExtractResult(url, links)
           case Failure(t) =>
             log.error(t, s"Fail to extract links in $url")

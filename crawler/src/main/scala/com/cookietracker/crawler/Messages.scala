@@ -2,7 +2,8 @@ package com.cookietracker.crawler
 
 import java.net.{InetAddress, URL}
 
-import akka.http.scaladsl.model.{HttpEntity, HttpRequest, HttpResponse}
+import akka.http.scaladsl.model.{HttpEntity, HttpRequest, HttpResponse, headers}
+import com.cookietracker.crawler.LinkExtractor.LinkContainer
 
 case class Fetch(baseUrl: URL, request: HttpRequest)
 
@@ -10,7 +11,7 @@ case class FetchResult(baseUrl: URL, response: HttpResponse)
 
 case class ExtractLink(baseUrl: URL, entity: HttpEntity)
 
-case class ExtractResult(baseUrl: URL, links: Seq[URL])
+case class ExtractResult(baseUrl: URL, links: LinkContainer)
 
 case class ExtractFailure(bastUrl: URL, throwable: Throwable)
 
@@ -45,3 +46,9 @@ case object WorkAvailable
 case object GimmeWork
 
 case object Start
+
+case class RecordCookie(baseUrl: URL, cookies: Seq[headers.HttpCookie])
+
+case class GetCookie(url: URL)
+
+case class GetCookieResult(url: URL, cookies: Seq[headers.HttpCookie])
