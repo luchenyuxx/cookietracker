@@ -5,9 +5,8 @@ import org.mongodb.scala.model.Filters._
 import org.mongodb.scala._
 import org.mongodb.scala.model.Updates._
 
-import scala.reflect.ClassTag
-
 object DataAccessObject {
+
   import DataAccesses._
 
   def insert[T](v: T)(implicit dataAccess: DataAccess[T]) = dataAccess.insert(v)
@@ -68,8 +67,8 @@ object DataAccesses {
 
     override def update(v: HttpCookie): Unit = httpCookieCollection.updateOne(equal("_id", v._id),
       combine(set("name", v.name), set("value", v.value), set("expireDate", v.expires), set("maxAge", v.maxAge),
-        set("domain", v.domain), set("path", v.path), set("secure", v.secure), set("httpOnly", v.httpOnly),
-        set("extension", v.extension), set("_fromHostId", v.fromHost._id)))
+        set("domain_id", v.domain._id), set("path", v.path), set("secure", v.secure), set("httpOnly", v.httpOnly),
+        set("extension", v.extension), set("fromUrl_Id", v.fromUrl._id)))
 
     override def delete(v: HttpCookie): Unit = httpCookieCollection.deleteOne(equal("_id", v._id))
 

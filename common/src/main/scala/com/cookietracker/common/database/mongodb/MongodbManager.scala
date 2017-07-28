@@ -39,7 +39,7 @@ object MongodbManager {
     }
   }
 
-  def getDBCollection[T:ClassTag](db: MongoDatabase, collectionName: String): MongoCollection[T] = {
+  def getDBCollection[T: ClassTag](db: MongoDatabase, collectionName: String): MongoCollection[T] = {
     try {
       val dbNames: Seq[String] = List()
       db.listCollectionNames().filter(name => name.equals(collectionName)).foreach(name => dbNames.+:(name))

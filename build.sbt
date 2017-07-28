@@ -18,8 +18,7 @@ inThisBuild(List(
 
 lazy val commonSettings = Seq(
   libraryDependencies ++= Seq(
-    "org.mongodb.scala" %% "mongo-scala-driver" % "2.1.0",
-    "org.mongodb" %% "casbah" % "3.1.1"
+    "org.mongodb.scala" %% "mongo-scala-driver" % "2.1.0"
   )
 )
 
