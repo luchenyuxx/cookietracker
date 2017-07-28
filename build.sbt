@@ -16,6 +16,13 @@ inThisBuild(List(
   version := "0.1.0-SNAPSHOT"
 ))
 
+lazy val commonSettings = Seq(
+  libraryDependencies ++= Seq(
+    "org.mongodb.scala" %% "mongo-scala-driver" % "2.1.0",
+    "org.mongodb" %% "casbah" % "3.1.1"
+  )
+)
+
 lazy val crawlerSettings = Seq(
   libraryDependencies ++= Seq(
     "org.scalatest" %% "scalatest" % "3.0.1",
@@ -51,12 +58,5 @@ lazy val serverSettings = Seq(
     "org.xerial" % "sqlite-jdbc" % "3.16.1",
     // https://mvnrepository.com/artifact/org.postgresql/postgresql
     "org.postgresql" % "postgresql" % "42.1.1"
-  )
-)
-
-lazy val commonSettings = Seq(
-  libraryDependencies ++= Seq(
-    // Used for mongodb, driver for scala
-    "org.mongodb.scala" %% "mongo-scala-driver" % "2.1.0"
   )
 )
