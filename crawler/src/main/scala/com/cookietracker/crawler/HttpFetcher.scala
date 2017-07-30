@@ -1,8 +1,10 @@
 package com.cookietracker.crawler
 
+import java.net.URL
+
 import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.model.{HttpRequest, HttpResponse, StatusCodes}
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Sink
 
@@ -22,9 +24,15 @@ import akka.stream.scaladsl.Sink
   */
 object HttpFetcher {
   def props = Props(new HttpFetcher)
+
+  case class Fetch(baseUrl: URL, request: HttpRequest)
+
+  case class FetchResult(baseUrl: URL, response: HttpResponse)
 }
 
 class HttpFetcher extends Actor with ActorLogging {
+
+  import HttpFetcher._
   // Needed by Http module
   implicit val system: ActorSystem = context.system
   implicit val materializer = ActorMaterializer()

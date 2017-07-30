@@ -4,6 +4,7 @@ import java.io.InputStream
 import java.net.URL
 
 import akka.actor.{Actor, ActorLogging, Props}
+import akka.http.scaladsl.model.HttpEntity
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Sink, StreamConverters}
 import org.apache.commons.validator.routines.UrlValidator
@@ -38,6 +39,12 @@ object LinkExtractor {
   private def preprocess(attribute: String, baseUrl: URL): String = if (attribute.startsWith("//")) {
     baseUrl.getProtocol + ":" + attribute
   } else attribute
+
+  case class ExtractLink(baseUrl: URL, entity: HttpEntity)
+
+  case class ExtractResult(baseUrl: URL, links: LinkContainer)
+
+  case class ExtractFailure(bastUrl: URL, throwable: Throwable)
 }
 
 class LinkExtractor extends Actor with ActorLogging {

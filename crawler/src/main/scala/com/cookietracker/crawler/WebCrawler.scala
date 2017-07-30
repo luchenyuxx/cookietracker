@@ -5,6 +5,13 @@ import akka.http.scaladsl.model.{HttpHeader, HttpRequest, Uri, headers}
 import akka.pattern._
 import akka.routing.BalancingPool
 import akka.util.Timeout
+import com.cookietracker.crawler.CookieManager.{GetCookie, GetCookieResult, RecordCookie}
+import com.cookietracker.crawler.HtmlResourceFetcher.FetchResource
+import com.cookietracker.crawler.HttpFetcher.{Fetch, FetchResult}
+import com.cookietracker.crawler.LinkExtractor.{ExtractLink, ExtractResult}
+import com.cookietracker.crawler.UrlDeduplicator.{Deduplicate, DeduplicateResult}
+import com.cookietracker.crawler.UrlFilter.{FilterResult, FilterUrl}
+import com.cookietracker.crawler.UrlFrontier.{Dequeue, DequeueResult, EmptyOrBusyQueue, Enqueue}
 
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration._
@@ -27,6 +34,7 @@ class WebCrawler extends Actor with ActorLogging {
   val urlFilter: ActorRef = context.actorOf(UrlFilter.props, "url-filter")
   val urlDeduplicator: ActorRef = context.actorOf(UrlDeduplicator.props, "url-deduplicator")
   val cookieManager: ActorRef = context.actorOf(CookieManager.props, "cookie-recorder")
+  val htmlResourceFetcher: ActorRef = context.actorOf(HtmlResourceFetcher.props, "html-resource-fetcher")
 
   override def receive: Receive = {
     /** When receive a URL from UrlFrontier, we send it to DnsResolver
@@ -69,6 +77,7 @@ class WebCrawler extends Actor with ActorLogging {
       }
       linkExtractors ! ExtractLink(url, response.entity)
     case ExtractResult(url, links) =>
+      htmlResourceFetcher ! FetchResource(url, links.srcLinks)
       urlFilter ! FilterUrl(url, links.hrefLinks)
     case FilterResult(baseUrl, urls) =>
       urlDeduplicator ! Deduplicate(baseUrl, urls)

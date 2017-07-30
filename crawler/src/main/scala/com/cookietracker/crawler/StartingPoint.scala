@@ -3,6 +3,7 @@ package com.cookietracker.crawler
 import java.net.URL
 
 import akka.actor.{ActorSystem, PoisonPill}
+import com.cookietracker.crawler.UrlDeduplicator.DeduplicateResult
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
