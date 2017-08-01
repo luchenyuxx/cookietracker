@@ -40,7 +40,7 @@ class HttpFetcher extends Actor with ActorLogging {
   override def receive: Receive = {
     case WorkAvailable => sender() ! GimmeWork
     case Fetch(url, request) =>
-      implicit val executionContext = context.dispatcher
+      implicit val executionContext = context.system.dispatchers.lookup("blocking-io-dispatcher")
       log.info(s"Fetching $request")
       val futureSender = sender()
       val fetchFuture = Http().singleRequest(request)

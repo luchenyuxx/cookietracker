@@ -21,6 +21,6 @@ class CookieManager extends Actor with ActorLogging {
   override def receive: Receive = {
     case RecordCookie(url, cookies) =>
     //      cookies.map(c => new HttpCookie(c.name, c.value, ))
-    case GetCookie(url) => GetCookieResult(url, Seq())
+    case GetCookie(url) => sender() ! GetCookieResult(url, Seq())
   }
 }

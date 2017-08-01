@@ -14,7 +14,7 @@ object DataAccessObject {
 }
 
 sealed trait DataAccess[T] {
-  def insert(v: T): Int
+  def insert(v: T)
 
   def insert(vs: Seq[T])
 

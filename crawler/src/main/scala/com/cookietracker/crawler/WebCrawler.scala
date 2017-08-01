@@ -49,14 +49,22 @@ class WebCrawler extends Actor with ActorLogging {
           cookieManager ? GetCookie(url) onSuccess {
             case GetCookieResult(_, cookies) =>
               Try {
-                val userAgentHeader: HttpHeader = headers.`User-Agent`("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36")
-                val cookieHeader: HttpHeader = headers.Cookie(cookies.map(_.pair()).toIndexedSeq)
-                val request = HttpRequest(uri = Uri(url.toExternalForm), headers = List(userAgentHeader, cookieHeader))
+                val requestHeaders = {
+                  val userAgentHeader: HttpHeader = headers.`User-Agent`("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36")
+                  if (cookies.nonEmpty) {
+                    val cookieHeader: HttpHeader = headers.Cookie(cookies.map(_.pair()).toIndexedSeq)
+                    List(userAgentHeader, cookieHeader)
+                  }
+                  else {
+                    List(userAgentHeader)
+                  }
+                }
+                val request = HttpRequest(uri = Uri(url.toExternalForm), headers = requestHeaders)
                 Fetch(url, request)
               } match {
                 case Success(v) => fetcher ! v
                 case Failure(t) =>
-                  log.error("error when creating HTTP request", t)
+                  log.error("error when creating HTTP request: " + t.getCause)
                   self.tell(GimmeWork, fetcher)
               }
           }
