@@ -5,4 +5,3 @@ case object WorkAvailable
 case object GimmeWork
 
 case object Start
-

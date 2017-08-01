@@ -19,7 +19,7 @@ import akka.stream.scaladsl.Sink
   * A client should consume the Entity regardless of the status of the HttpResponse.
   *
   * {{{
-  *   Fetch(url) ~> FetchResult(responseFuture)
+  *   Fetch(url) ~> FetchResult(baseUrl, response)
   * }}}
   */
 object HttpFetcher {
