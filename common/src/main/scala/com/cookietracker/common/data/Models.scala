@@ -1,19 +1,14 @@
 package com.cookietracker.common.data
 
-import java.util.Date
+import java.sql.Date
 
-import org.mongodb.scala.bson.ObjectId
+final case class WebHost(hostName: String, id: Option[Long] = None)
 
-object WebHost {
-  def apply(hostName: String): WebHost = WebHost(new ObjectId, hostName)
-}
+final case class HostRelation(fromHostId: Long, toHostId: Long, requestUrl: String)
 
-final case class WebHost(_id: ObjectId, hostName: String)
+final case class Url(protocol: String, hostId: Long, port: Int, file: String, id: Option[Long] = None)
 
-final case class HostRelation(from: WebHost, to: WebHost, requestUrl: String)
-
-final case class HttpCookie(_id: ObjectId,
-                            name: String,
+final case class HttpCookie(name: String,
                             value: String,
                             expires: Option[Date] = None,
                             maxAge: Option[Long] = None,
@@ -22,4 +17,4 @@ final case class HttpCookie(_id: ObjectId,
                             secure: Boolean = false,
                             httpOnly: Boolean = false,
                             extension: Option[String] = None,
-                            fromHost: WebHost)
+                            id: Option[Long] = None)

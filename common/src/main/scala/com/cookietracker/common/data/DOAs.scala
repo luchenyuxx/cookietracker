@@ -1,104 +1,140 @@
 package com.cookietracker.common.data
 
-import com.cookietracker.common.database.mongodb.MongodbManager
-import org.mongodb.scala.model.Filters._
-import org.mongodb.scala._
-import org.mongodb.scala.model.Updates._
+import com.cookietracker.common.database.{DBComponent, PostgreSqlComponent}
+import slick.dbio.DBIOAction
+import slick.driver.PostgresDriver.api._
 
-import scala.reflect.ClassTag
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+import scala.util.{Failure, Success}
 
 object DataAccessObject {
   import DataAccesses._
 
-  def insert[T](v: T)(implicit dataAccess: DataAccess[T]) = dataAccess.insert(v)
+  def insert[T](v: T)(implicit dataAccess: DataAccess[T]): Future[Long] = dataAccess.insert(v)
 
-  def insert[T](vs: Seq[T])(implicit dataAccess: DataAccess[T]) = dataAccess.insert(vs)
+  def insert[T](vs: Seq[T])(implicit dataAccess: DataAccess[T]): Future[Seq[Long]] = dataAccess.insert(vs)
 
-  def update[T](v: T)(implicit dataAccess: DataAccess[T]) = dataAccess.update(v)
+  def update[T](v: T)(implicit dataAccess: DataAccess[T]): Future[Int] = dataAccess.update(v)
 
-  def delete[T](v: T)(implicit dataAccess: DataAccess[T]) = dataAccess.delete(v)
+  def delete[T](v: T)(implicit dataAccess: DataAccess[T]): Future[Int] = dataAccess.delete(v)
 
-  def getAll[T](implicit dataAccess: DataAccess[T]): Seq[T] = dataAccess.getAll
+  def getAll[T](implicit dataAccess: DataAccess[T]): Future[Seq[_]] = dataAccess.getAll
 }
 
 trait DataAccess[T] {
-  def insert(v: T)
+  def insert(v: T): Future[Long]
 
-  def insert(vs: Seq[T])
+  def insert(vs: Seq[T]): Future[Seq[Long]]
 
-  def update(v: T)
+  def update(v: T): Future[Int]
 
-  def delete(v: T)
+  def delete(v: T): Future[Int]
 
-  def getAll: Seq[T]
+  def getAll: Future[Seq[_]]
 }
 
 object DataAccesses {
-  val connection: MongoClient = MongodbManager.getConnection(MongodbManager.myhost, 27017)
-  val dataBase: MongoDatabase = MongodbManager.getDataBase(connection, MongodbManager.dbname)
-
-  implicit object WebHostDataAccess extends DataAccess[WebHost] {
-    val webHostCollection: MongoCollection[WebHost] = MongodbManager.getDBCollection[WebHost](dataBase, "WebHosts")
-
-    override def insert(v: WebHost): Unit = webHostCollection.insertOne(v)
-
-    override def insert(vs: Seq[WebHost]): Unit = webHostCollection.insertMany(vs)
-
-    override def update(v: WebHost): Unit = webHostCollection.updateOne(equal("_id", v._id), set("hostName", v.hostName))
-
-    override def delete(v: WebHost): Unit = webHostCollection.deleteOne(equal("_id", v._id))
-
-    override def getAll: Seq[WebHost] = {
-      val webhosts = Seq()
-      for (webhost <- webHostCollection.find())
-        webhost +: webhosts
-      webhosts
-    }
+  implicit object WebHostDataAccess extends WebHostDataAccess with PostgreSqlComponent {
+    val webHostSchema = db.run(DBIOAction.seq(webHostTableQuery.schema.create))
   }
 
-  implicit object HttpCookieDataAccess extends DataAccess[HttpCookie] {
-    val httpCookieCollection: MongoCollection[HttpCookie] = MongodbManager.getDBCollection[HttpCookie](dataBase, "HttpCookies")
-
-    override def insert(v: HttpCookie): Unit = {
-      httpCookieCollection.find(equal("_id", v._id)).first()
-      httpCookieCollection.insertOne(v)
-    }
-
-    override def insert(vs: Seq[HttpCookie]): Unit = httpCookieCollection.insertMany(vs)
-
-    override def update(v: HttpCookie): Unit = httpCookieCollection.updateOne(equal("_id", v._id),
-      combine(set("name", v.name), set("value", v.value), set("expireDate", v.expires), set("maxAge", v.maxAge),
-        set("domain", v.domain), set("path", v.path), set("secure", v.secure), set("httpOnly", v.httpOnly),
-        set("extension", v.extension), set("_fromHostId", v.fromHost._id)))
-
-    override def delete(v: HttpCookie): Unit = httpCookieCollection.deleteOne(equal("_id", v._id))
-
-    override def getAll: Seq[HttpCookie] = {
-      val httpcookies = Seq()
-      for (cookie <- httpCookieCollection.find())
-        cookie +: httpcookies
-      httpcookies
-    }
+  implicit object HostRelationDataAccess extends HostRelationDataAccess with PostgreSqlComponent {
+    val hostRelationSchema = db.run(DBIOAction.seq(hostRelationTableQuery.schema.create))
   }
 
-  implicit object HostRelationDataAccess extends DataAccess[HostRelation] {
-    val hostRelationCollection: MongoCollection[HostRelation] = MongodbManager.getDBCollection[HostRelation](dataBase, "HostRelations")
+  implicit object HttpCookieDataAccess extends HttpCookieDataAccess with PostgreSqlComponent {
+    val httpCookieSchema = db.run(DBIOAction.seq(httpCookieTableQuery.schema.create))
+  }
 
-    override def insert(v: HostRelation): Unit = hostRelationCollection.insertOne(v)
+  implicit object UrlDataAccess extends UrlDataAccess with PostgreSqlComponent {
+    val urlSchema = db.run(DBIOAction.seq(urlTableQuery.schema.create))
+  }
 
-    override def insert(vs: Seq[HostRelation]): Unit = hostRelationCollection.insertMany(vs)
+  trait WebHostDataAccess extends DataAccess[WebHost] with WebHostTable { this: DBComponent =>
 
-    override def update(v: HostRelation): Unit = hostRelationCollection.updateOne(and(equal("_fromHostId", v.from), equal("_toHostId", v.to)),
-      set("requestUrl", v.requestUrl))
+    override def insert(v: WebHost): Future[Long] = db.run{webHostTableAutoInc += v}
 
-    override def getAll: Seq[HostRelation] = {
-      val hostrelations = Seq()
-      for (hostrelation <- hostRelationCollection.find())
-        hostrelation +: hostrelations
-      hostrelations
+    override def insert(vs: Seq[WebHost]): Future[Seq[Long]] = {
+      var hostids = Seq[Long]()
+      vs.foreach(v => {
+        db.run(webHostTableAutoInc += v).onComplete{
+          case Success(id) => hostids = hostids :+ id
+          case Failure(e) => println(s"Failed to create webhost : ${v.hostName}")
+        }
+      })
+      Future(hostids)
     }
 
-    override def delete(v: HostRelation): Unit = hostRelationCollection.deleteOne(and(equal("_fromHostId", v.from), equal("_toHostId", v.to)))
+    override def update(v: WebHost): Future[Int] = db.run(webHostTableQuery.filter(_.id === v.id.get).update(v))
+
+    override def delete(v: WebHost): Future[Int] = db.run(webHostTableQuery.filter(_.id === v.id.get).delete)
+
+    override def getAll: Future[Seq[WebHost]] = db.run(webHostTableQuery.to[Seq].result)
+  }
+
+  trait HttpCookieDataAccess extends DataAccess[HttpCookie] with HttpCookieTable { this: DBComponent =>
+
+    override def insert(v: HttpCookie): Future[Long] = db.run(httpCookieTableAutoInc += v)
+
+    override def insert(vs: Seq[HttpCookie]): Future[Seq[Long]] = {
+      var cookieids = Seq[Long]()
+      vs.foreach(v => {
+        db.run(httpCookieTableAutoInc += v).onComplete {
+          case Success(id) => cookieids = cookieids :+ id
+          case Failure(e) => println(s"Failed to create httpcookie : ${v.name}")
+        }
+      })
+      Future(cookieids)
+    }
+
+    override def update(v: HttpCookie): Future[Int] = db.run(httpCookieTableQuery.filter(_.id === v.id.get).update(v))
+
+    override def delete(v: HttpCookie): Future[Int] = db.run(httpCookieTableQuery.filter(_.id === v.id.get).delete)
+
+    override def getAll: Future[Seq[HttpCookie]] = db.run(httpCookieTableQuery.to[Seq].result)
+  }
+
+  trait HostRelationDataAccess extends DataAccess[HostRelation] with HostRelationTable { this: DBComponent =>
+
+    //TODO Need To think for HostRelation return (id_from, id_to), same to insert(seq)
+    override def insert(v: HostRelation): Future[Long] ={
+      db.run(DBIOAction.seq(hostRelationTableQuery += v))
+      Future(1)
+    }
+
+    override def insert(vs: Seq[HostRelation]): Future[Seq[Long]] = {
+      vs.foreach(v => db.run(hostRelationTableQuery += v))
+      Future(Seq[Long]())
+    }
+
+    override def update(v: HostRelation): Future[Int] = db.run(hostRelationTableQuery.filter(r => r.fromID === v.fromHostId && r.toID === v.toHostId).update(v))
+
+    override def getAll: Future[Seq[HostRelation]] = db.run(hostRelationTableQuery.to[Seq].result)
+
+    override def delete(v: HostRelation): Future[Int] = db.run(hostRelationTableQuery.filter(r => r.fromID === v.fromHostId && r.toID === v.toHostId).delete)
+  }
+
+  trait UrlDataAccess extends DataAccess[Url] with UrlTable { this: DBComponent =>
+
+    override def insert(v: Url): Future[Long] = db.run(urlTableAutoInc += v)
+
+    override def insert(vs: Seq[Url]): Future[Seq[Long]] = {
+      var urls = Seq[Long]()
+      vs.foreach(v => {
+        db.run(urlTableAutoInc += v).onComplete {
+          case Success(id) => urls = urls :+ id
+          case Failure(e) => println(s"Failed to create url from host : ${v.hostId}")
+        }
+      })
+      Future(urls)
+    }
+
+    override def update(v: Url): Future[Int] = db.run(urlTableQuery.filter(_.id === v.id.get).update(v))
+
+    override def delete(v: Url): Future[Int] = db.run(urlTableQuery.filter(_.id === v.id.get).delete)
+
+    override def getAll: Future[Seq[Url]] = db.run(urlTableQuery.to[Seq].result)
   }
 }
 
