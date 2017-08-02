@@ -18,7 +18,13 @@ inThisBuild(List(
 
 lazy val commonSettings = Seq(
   libraryDependencies ++= Seq(
-    "org.mongodb.scala" %% "mongo-scala-driver" % "2.1.0"
+    // Used for mongodb, but now we don't need
+    //"org.mongodb.scala" %% "mongo-scala-driver" % "2.1.0",
+    "org.postgresql" % "postgresql" % "42.1.1",
+    // Slick for FRM
+    "com.typesafe.slick" %% "slick" % "3.1.0",
+    "org.slf4j" % "slf4j-nop" % "1.6.4",
+    "com.typesafe.slick" %% "slick-hikaricp" % "3.1.0"
   )
 )
 

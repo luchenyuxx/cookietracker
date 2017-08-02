@@ -1,6 +1,6 @@
 package com.cookietracker.common.data
 
-import java.util.Date
+import java.sql.Date
 
 final case class WebHost(hostName: String, id: Option[Long] = None)
 
