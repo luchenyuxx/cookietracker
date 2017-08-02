@@ -42,7 +42,7 @@ class WebCrawler extends Actor with ActorReporting with ActorLogging {
 
   var pressure = 0
   var urlCount: Long = 0
-  val pressureThreshold = 100
+  val pressureThreshold = 200
 
   override def monitoredReceive: Receive = {
     case DequeueResult(url) =>
@@ -97,7 +97,10 @@ class WebCrawler extends Actor with ActorReporting with ActorLogging {
     case x => log.warning(s"Unknown message $x")
   }
 
-  private def decreasePressure() = pressure -= 1
+  private def decreasePressure() = {
+    pressure -= 1
+    continue()
+  }
 
   private def increasePressure() = pressure += 1
 
@@ -105,10 +108,10 @@ class WebCrawler extends Actor with ActorReporting with ActorLogging {
     if (pressure < pressureThreshold) {
       urlFrontier ! Dequeue
     } else {
-      log.info("Http fetching under pressure, will feed after 1 second")
-      context.system.scheduler.scheduleOnce(1.second, new Runnable {
-        override def run(): Unit = continue()
-      })
+      //      log.info("Http fetching under pressure, will feed after 1 second")
+      //      context.system.scheduler.scheduleOnce(1.second, new Runnable {
+      //        override def run(): Unit = continue()
+      //      })
     }
   }
 
