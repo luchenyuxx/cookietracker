@@ -25,6 +25,20 @@ object UrlFrontier {
   // A host contains a queue and a state
   val subQueueByHost: ConcurrentHashMap[String, ConcurrentLinkedQueue[URL]] = new ConcurrentHashMap()
   val hostByReady: ConcurrentHashMap[String, Boolean] = new ConcurrentHashMap()
+
+  case class Enqueue(urls: Seq[URL])
+
+  case class StoreUrlTask()
+
+  case class EnqueueResult()
+
+  case object Dequeue
+
+  case class LoadUrlTask()
+
+  case class DequeueResult(urlLoaded: URL)
+
+  case class EmptyOrBusyQueue()
 }
 
 class UrlFrontier extends Actor with ActorLogging {

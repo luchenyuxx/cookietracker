@@ -1,5 +1,6 @@
 package com.cookietracker.crawler
 
+import java.net.URL
 import java.util
 import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
@@ -22,6 +23,10 @@ object UrlDeduplicator {
   def props = Props(new UrlDeduplicator)
 
   val seenUrl: util.Set[String] = Collections.newSetFromMap[String](new ConcurrentHashMap())
+
+  case class Deduplicate(baseUrl: URL, urls: Seq[URL])
+
+  case class DeduplicateResult(baseUrl: URL, urls: Seq[URL])
 }
 
 class UrlDeduplicator extends Actor with ActorLogging {

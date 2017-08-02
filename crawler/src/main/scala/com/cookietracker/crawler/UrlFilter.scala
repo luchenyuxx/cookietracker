@@ -1,6 +1,6 @@
 package com.cookietracker.crawler
 
-import java.net.URLConnection
+import java.net.{URL, URLConnection}
 
 import akka.actor.{Actor, ActorLogging, Props}
 
@@ -10,9 +10,15 @@ import akka.actor.{Actor, ActorLogging, Props}
   */
 object UrlFilter {
   def props = Props(new UrlFilter)
+
+  case class FilterUrl(baseUrl: URL, urls: Seq[URL])
+
+  case class FilterResult(baseUrl: URL, urls: Seq[URL])
 }
 
 class UrlFilter extends Actor with ActorLogging {
+
+  import UrlFilter._
   override def receive: Receive = {
     case FilterUrl(baseUrl, urls) =>
       val filtered = urls.filter { u =>

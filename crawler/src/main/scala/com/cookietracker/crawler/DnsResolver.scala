@@ -1,6 +1,6 @@
 package com.cookietracker.crawler
 
-import java.net.InetAddress
+import java.net.{InetAddress, URL}
 import java.util
 import java.util.Collections
 
@@ -23,9 +23,16 @@ object DnsResolver {
   // Host name to IP address representation
   private val cache: Cache[String, InetAddress] = CacheBuilder.newBuilder().maximumSize(10000).build[String, InetAddress]()
   private val badHostNames: util.Collection[String] = Collections.synchronizedCollection(new util.HashSet[String]())
+
+  case class DnsResolve(url: URL)
+
+  case class DnsResolved(baseUrl: URL, address: Option[InetAddress])
 }
 
 class DnsResolver extends Actor with ActorLogging {
+
+  import DnsResolver._
+
   override def receive: Receive = {
     case DnsResolve(url) =>
       val hostName = url.getHost
