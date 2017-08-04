@@ -3,7 +3,7 @@ package com.cookietracker.common.data
 import java.sql.Date
 
 import com.cookietracker.common.database.DBComponent
-import slick.lifted.{ProvenShape, Tag}
+import slick.lifted._
 
 private[data] trait WebHostTable { this: DBComponent =>
   import driver.api._
@@ -11,6 +11,7 @@ private[data] trait WebHostTable { this: DBComponent =>
   protected[WebHostTable] class WebHostTable(tag: Tag) extends Table[WebHost](tag: Tag, "WebHosts") {
     def hostname = column[String]("HostName")
     def id = column[Long]("ID", O.PrimaryKey, O.AutoInc)
+    def idx = index("NAME_UNIQUE", hostname, unique = true)
     override def * : ProvenShape[WebHost] = (hostname, id.?) <> (WebHost.tupled, WebHost.unapply)
   }
 
@@ -71,4 +72,9 @@ private[data] trait UrlTable extends WebHostTable { this: DBComponent =>
 
   protected val urlTableQuery = TableQuery[UrlTable]
   protected def urlTableAutoInc = urlTableQuery returning urlTableQuery.map(_.id)
+}
+
+object SlickSchemas {
+  //val allDBtables = Seq(TableQuery[WebHostTable], TableQuery[HostRelationTable], TableQuery[HttpCookieTable], TableQuery[UrlTable])
+
 }
