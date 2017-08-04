@@ -9,8 +9,6 @@ import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
 object DataAccessObject {
-  import DataAccesses._
-
   def insert[T](v: T)(implicit dataAccess: DataAccess[T]): Future[Long] = dataAccess.insert(v)
 
   def insert[T](vs: Seq[T])(implicit dataAccess: DataAccess[T]): Future[Seq[Long]] = dataAccess.insert(vs)
@@ -36,22 +34,23 @@ trait DataAccess[T] {
 
 object DataAccesses {
   implicit object WebHostDataAccess extends WebHostDataAccess with PostgreSqlComponent {
-    val webHostSchema = db.run(DBIOAction.seq(webHostTableQuery.schema.create))
+    val webHostSchema: Future[Unit] = db.run(DBIOAction.seq(webHostTableQuery.schema.create))
   }
 
   implicit object HostRelationDataAccess extends HostRelationDataAccess with PostgreSqlComponent {
-    val hostRelationSchema = db.run(DBIOAction.seq(hostRelationTableQuery.schema.create))
+    val hostRelationSchema: Future[Unit] = db.run(DBIOAction.seq(hostRelationTableQuery.schema.create))
   }
 
   implicit object HttpCookieDataAccess extends HttpCookieDataAccess with PostgreSqlComponent {
-    val httpCookieSchema = db.run(DBIOAction.seq(httpCookieTableQuery.schema.create))
+    val httpCookieSchema: Future[Unit] = db.run(DBIOAction.seq(httpCookieTableQuery.schema.create))
   }
 
   implicit object UrlDataAccess extends UrlDataAccess with PostgreSqlComponent {
-    val urlSchema = db.run(DBIOAction.seq(urlTableQuery.schema.create))
+    val urlSchema: Future[Unit] = db.run(DBIOAction.seq(urlTableQuery.schema.create))
   }
 
-  trait WebHostDataAccess extends DataAccess[WebHost] with WebHostTable { this: DBComponent =>
+  trait WebHostDataAccess extends DataAccess[WebHost] with WithWebHostTable {
+    this: DBComponent =>
 
     override def insert(v: WebHost): Future[Long] = db.run{webHostTableAutoInc += v}
 
@@ -73,7 +72,8 @@ object DataAccesses {
     override def getAll: Future[Seq[WebHost]] = db.run(webHostTableQuery.to[Seq].result)
   }
 
-  trait HttpCookieDataAccess extends DataAccess[HttpCookie] with HttpCookieTable { this: DBComponent =>
+  trait HttpCookieDataAccess extends DataAccess[HttpCookie] with WithHttpCookieTable {
+    this: DBComponent =>
 
     override def insert(v: HttpCookie): Future[Long] = db.run(httpCookieTableAutoInc += v)
 
@@ -95,7 +95,8 @@ object DataAccesses {
     override def getAll: Future[Seq[HttpCookie]] = db.run(httpCookieTableQuery.to[Seq].result)
   }
 
-  trait HostRelationDataAccess extends DataAccess[HostRelation] with HostRelationTable { this: DBComponent =>
+  trait HostRelationDataAccess extends DataAccess[HostRelation] with WithHostRelationTable {
+    this: DBComponent =>
 
     //TODO Need To think for HostRelation return (id_from, id_to), same to insert(seq)
     override def insert(v: HostRelation): Future[Long] ={
@@ -115,7 +116,8 @@ object DataAccesses {
     override def delete(v: HostRelation): Future[Int] = db.run(hostRelationTableQuery.filter(r => r.fromID === v.fromHostId && r.toID === v.toHostId).delete)
   }
 
-  trait UrlDataAccess extends DataAccess[Url] with UrlTable { this: DBComponent =>
+  trait UrlDataAccess extends DataAccess[Url] with WithUrlTable {
+    this: DBComponent =>
 
     override def insert(v: Url): Future[Long] = db.run(urlTableAutoInc += v)
 
