@@ -23,8 +23,11 @@ lazy val commonSettings = Seq(
     "org.postgresql" % "postgresql" % "42.1.1",
     // Slick for FRM
     "com.typesafe.slick" %% "slick" % "3.1.0",
-    "org.slf4j" % "slf4j-nop" % "1.6.4",
-    "com.typesafe.slick" %% "slick-hikaricp" % "3.1.0"
+    "ch.qos.logback" % "logback-classic" % "1.2.3",
+    "com.typesafe.slick" %% "slick-hikaricp" % "3.1.0",
+    // test
+    "org.scalatest" %% "scalatest" % "3.0.3" % Test,
+    "com.h2database" % "h2" % "1.4.196" % Test
   )
 )
 

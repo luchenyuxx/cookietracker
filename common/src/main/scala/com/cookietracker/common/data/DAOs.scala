@@ -9,8 +9,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 object DataAccessObject {
-  import DataAccesses._
-
   def insert[T](v: T)(implicit dataAccess: DataAccess[T]): Future[Long] = dataAccess.insert(v)
 
   def insert[T](vs: Seq[T])(implicit dataAccess: DataAccess[T]): Future[Seq[Long]] = dataAccess.insert(vs)
@@ -78,7 +76,8 @@ object DataAccesses {
     ))
   }
 
-  trait WebHostDataAccess extends DataAccess[WebHost] with WebHostTable { this: DBComponent =>
+  trait WebHostDataAccess extends DataAccess[WebHost] with WithWebHostTable {
+    this: DBComponent =>
 
     override def insert(v: WebHost): Future[Long] = db.run((webHostTableAutoInc += v).transactionally)
 
@@ -100,7 +99,8 @@ object DataAccesses {
     def getWebHostBy(id: Long): Future[Option[WebHost]] = db.run(webHostTableQuery.filter(_.id === id).result.headOption.transactionally)
   }
 
-  trait HttpCookieDataAccess extends DataAccess[HttpCookie] with HttpCookieTable { this: DBComponent =>
+  trait HttpCookieDataAccess extends DataAccess[HttpCookie] with WithHttpCookieTable {
+    this: DBComponent =>
 
     override def insert(v: HttpCookie): Future[Long] = db.run((httpCookieTableAutoInc += v).transactionally)
 
@@ -120,7 +120,8 @@ object DataAccesses {
     def getHttpCookieBy(id: Long): Future[Option[HttpCookie]] = db.run(httpCookieTableQuery.filter(_.id === id).result.headOption.transactionally)
   }
 
-  trait HostRelationDataAccess extends DataAccess[HostRelation] with HostRelationTable { this: DBComponent =>
+  trait HostRelationDataAccess extends DataAccess[HostRelation] with WithHostRelationTable {
+    this: DBComponent =>
 
     override def insert(v: HostRelation): Future[Long] ={
       db.run((hostRelationTableQuery += v).transactionally)
@@ -144,7 +145,8 @@ object DataAccesses {
     def getHostRelationBy(fromid: Long, toid: Long): Future[Option[HostRelation]] = db.run(hostRelationTableQuery.filter(r => r.fromID === fromid && r.toID === toid).result.headOption.transactionally)
   }
 
-  trait UrlDataAccess extends DataAccess[Url] with UrlTable { this: DBComponent =>
+  trait UrlDataAccess extends DataAccess[Url] with WithUrlTable {
+    this: DBComponent =>
 
     override def insert(v: Url): Future[Long] = db.run((urlTableAutoInc += v).transactionally)
 

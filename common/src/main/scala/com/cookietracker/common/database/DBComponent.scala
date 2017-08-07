@@ -3,7 +3,8 @@ package com.cookietracker.common.database
 import slick.driver.JdbcProfile
 
 trait DBComponent {
-  val driver: JdbcProfile
+  protected val driver: JdbcProfile
   import driver.api._
-  val db: Database
+
+  protected val db: Database
 }
