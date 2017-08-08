@@ -4,7 +4,7 @@ import java.sql.Date
 
 final case class WebHost(hostName: String, id: Option[Long] = None)
 
-final case class HostRelation(fromHostId: Long, toHostId: Long, requestUrl: String)
+final case class HostRelation(fromHostId: Long, toHostId: Long, requestUrl: String, id: Option[Long] = None)
 
 final case class Url(protocol: String, hostId: Long, port: Int, file: String, id: Option[Long] = None)
 

@@ -3,11 +3,11 @@ package com.cookietracker.common.data
 import java.sql.Date
 
 import com.cookietracker.common.database.DBComponent
-import slick.lifted._
 import slick.jdbc.meta.MTable
+import slick.lifted._
 
-import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, ExecutionContext}
 
 private[data] trait WithWebHostTable {
   self: DBComponent =>
@@ -21,8 +21,6 @@ private[data] trait WithWebHostTable {
   }
 
   protected val webHostTableQuery: TableQuery[WebHostTable] = TableQuery[WebHostTable]
-
-  protected def webHostTableAutoInc: driver.ReturningInsertActionComposer[WebHost, Long] = webHostTableQuery returning webHostTableQuery.map(_.id)
 }
 
 private[data] trait WithHostRelationTable extends WithWebHostTable {
@@ -30,6 +28,8 @@ private[data] trait WithHostRelationTable extends WithWebHostTable {
   import driver.api._
 
   protected[WithHostRelationTable] class HostRelationTable(tag: Tag) extends Table[HostRelation](tag, "HostRelations") {
+    def id: Rep[Long] = column[Long]("ID", O.PrimaryKey, O.AutoInc)
+
     def fromID: Rep[Long] = column[Long]("FromID")
 
     def fromK: ForeignKeyQuery[WebHostTable, WebHost] = foreignKey("HOST_FROM_FK", fromID, webHostTableQuery)(_.id)
@@ -40,9 +40,7 @@ private[data] trait WithHostRelationTable extends WithWebHostTable {
 
     def url: Rep[String] = column[String]("RequestURL")
 
-    def pk: PrimaryKey = primaryKey("HOST_PK", (fromID, toID))
-
-    override def * : ProvenShape[HostRelation] = (fromID, toID, url) <> (HostRelation.tupled, HostRelation.unapply)
+    override def * : ProvenShape[HostRelation] = (fromID, toID, url, id ?) <> (HostRelation.tupled, HostRelation.unapply)
   }
 
   protected val hostRelationTableQuery: TableQuery[HostRelationTable] = TableQuery[HostRelationTable]
@@ -50,6 +48,7 @@ private[data] trait WithHostRelationTable extends WithWebHostTable {
 
 private[data] trait WithHttpCookieTable extends WithWebHostTable {
   self: DBComponent =>
+
   import driver.api._
 
   protected[WithHttpCookieTable] class HttpCookieTable(tag: Tag) extends Table[HttpCookie](tag, "HttpCookies") {
@@ -77,8 +76,6 @@ private[data] trait WithHttpCookieTable extends WithWebHostTable {
   }
 
   protected val httpCookieTableQuery: TableQuery[HttpCookieTable] = TableQuery[HttpCookieTable]
-
-  protected def httpCookieTableAutoInc: driver.ReturningInsertActionComposer[HttpCookie, Long] = httpCookieTableQuery returning httpCookieTableQuery.map(_.id)
 }
 
 private[data] trait WithUrlTable extends WithWebHostTable {

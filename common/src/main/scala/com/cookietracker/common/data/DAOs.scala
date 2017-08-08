@@ -1,169 +1,144 @@
 package com.cookietracker.common.data
 
-import com.cookietracker.common.database.{DBComponent, PostgreSqlComponent}
-import slick.dbio.DBIOAction
+import com.cookietracker.common.concurrency.ImplicitExecutionContext
+import com.cookietracker.common.database.DBComponent
 import slick.driver.PostgresDriver.api._
-import slick.jdbc.meta.MTable
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-object DataAccessObject {
-  def insert[T](v: T)(implicit dataAccess: DataAccess[T]): Future[Long] = dataAccess.insert(v)
+class FindEmptyIdException extends Exception("The object should have an id")
 
-  def insert[T](vs: Seq[T])(implicit dataAccess: DataAccess[T]): Future[Seq[Long]] = dataAccess.insert(vs)
-
-  def update[T](v: T)(implicit dataAccess: DataAccess[T]): Future[Int] = dataAccess.update(v)
-
-  def delete[T](v: T)(implicit dataAccess: DataAccess[T]): Future[Int] = dataAccess.delete(v)
-
-  def getAll[T](implicit dataAccess: DataAccess[T]): Future[Seq[T]] = dataAccess.getAll
-
-  def getData[T](v: T)(implicit dataAccess: DataAccess[T]): Future[Option[T]] = dataAccess.getData(v)
-}
+class InsertWithIdException extends Exception("The object to insert should not have an id")
 
 trait DataAccess[T] {
-  def insert(v: T): Future[Long]
+  def insert(v: T): Future[T]
 
-  def insert(vs: Seq[T]): Future[Seq[Long]]
+  def insert(vs: Seq[T]): Future[Seq[T]]
 
-  def update(v: T): Future[Int]
+  def update(v: T): Future[Option[T]]
 
   def delete(v: T): Future[Int]
 
   def getAll: Future[Seq[T]]
 
-  def getData(v: T): Future[Option[T]]
+  def getById(id: Long): Future[Option[T]]
+
+  protected def withId[S](idOption: Option[Long])(f: Long => Future[S]): Future[S] = idOption match {
+    case Some(i) => f(i)
+    case None => Future.failed(new FindEmptyIdException)
+  }
+
 }
 
-object DataAccesses {
-  implicit object WebHostDataAccess extends WebHostDataAccess with PostgreSqlComponent {
-    //Check if exist table
-    db.run(webHostTableQuery.schema.create)
-    /*val a = db.run(DBIOAction.seq(
-      MTable.getTables.map(tables => {
-        if (!tables.exists(_.name.name == webHostTableQuery.baseTableRow.tableName))
-          webHostTableQuery.schema.create
-      })
-    ))*/
-  }
+trait WebHostDataAccess extends DataAccess[WebHost] with WithWebHostTable {
+  this: DBComponent with ImplicitExecutionContext =>
 
-  implicit object HostRelationDataAccess extends HostRelationDataAccess with PostgreSqlComponent {
-    db.run(hostRelationTableQuery.schema.create)
-    /*db.run(DBIOAction.seq(
-      MTable.getTables.map(tables => {
-        if (!tables.exists(_.name.name == hostRelationTableQuery.baseTableRow.tableName))
-          hostRelationTableQuery.schema.create
-      })
-    ))*/
-  }
+  override def insert(v: WebHost): Future[WebHost] = if (v.id.isEmpty) db.run(insertQueryReturningObject += v) else Future.failed(new InsertWithIdException)
 
-  implicit object HttpCookieDataAccess extends HttpCookieDataAccess with PostgreSqlComponent {
-    db.run(DBIOAction.seq(
-      MTable.getTables.map(tables => {
-        if (!tables.exists(_.name.name == httpCookieTableQuery.baseTableRow.tableName))
-          httpCookieTableQuery.schema.create
-      })
-    ))
-  }
+  override def insert(vs: Seq[WebHost]): Future[Seq[WebHost]] =
+    if (vs.exists(_.id.isDefined)) Future.failed(new InsertWithIdException)
+    else db.run((insertQueryReturningObject ++= vs).transactionally)
 
-  implicit object UrlDataAccess extends UrlDataAccess with PostgreSqlComponent {
-    db.run(DBIOAction.seq(
-      MTable.getTables.map(tables => {
-        if (!tables.exists(_.name.name == urlTableQuery.baseTableRow.tableName))
-          urlTableQuery.schema.create
-      })
-    ))
-  }
-
-  trait WebHostDataAccess extends DataAccess[WebHost] with WithWebHostTable {
-    this: DBComponent =>
-
-    override def insert(v: WebHost): Future[Long] = db.run((webHostTableAutoInc += v).transactionally)
-
-    override def insert(vs: Seq[WebHost]): Future[Seq[Long]] = db.run((webHostTableAutoInc ++= vs).transactionally)
-
-    override def update(v: WebHost): Future[Int] = db.run(webHostTableQuery.filter(_.id === v.id.get).update(v).transactionally)
-
-    override def delete(v: WebHost): Future[Int] = db.run(webHostTableQuery.filter(_.id === v.id.get).delete.transactionally)
-
-    override def getAll: Future[Seq[WebHost]] = db.run(webHostTableQuery.to[Seq].result.transactionally)
-
-    override def getData(v: WebHost): Future[Option[WebHost]] = v.id match {
-      case Some(_id) => getWebHostBy(_id)
-      case _ => getWebHostBy(v.hostName)
+  override def update(v: WebHost): Future[Option[WebHost]] = withId(v.id) { i =>
+    db.run(findById(i).update(v)).map {
+      case 0 => None
+      case _ => Some(v)
     }
-
-    def getWebHostBy(hostName: String): Future[Option[WebHost]] = db.run(webHostTableQuery.filter(_.hostname === hostName).result.headOption.transactionally)
-
-    def getWebHostBy(id: Long): Future[Option[WebHost]] = db.run(webHostTableQuery.filter(_.id === id).result.headOption.transactionally)
   }
 
-  trait HttpCookieDataAccess extends DataAccess[HttpCookie] with WithHttpCookieTable {
-    this: DBComponent =>
+  override def delete(v: WebHost): Future[Int] = withId(v.id) { i => db.run(findById(i).delete) }
 
-    override def insert(v: HttpCookie): Future[Long] = db.run((httpCookieTableAutoInc += v).transactionally)
+  override def getAll: Future[Seq[WebHost]] = db.run(webHostTableQuery.result)
 
-    override def insert(vs: Seq[HttpCookie]): Future[Seq[Long]] = db.run((httpCookieTableAutoInc ++= vs).transactionally)
+  override def getById(id: Long): Future[Option[WebHost]] = db.run(findById(id).result.headOption)
 
-    override def update(v: HttpCookie): Future[Int] = db.run(httpCookieTableQuery.filter(_.id === v.id.get).update(v).transactionally)
+  private val findById = Compiled((id: ConstColumn[Long]) => webHostTableQuery.filter(_.id === id))
 
-    override def delete(v: HttpCookie): Future[Int] = db.run(httpCookieTableQuery.filter(_.id === v.id.get).delete.transactionally)
+  private def insertQueryReturningObject = webHostTableQuery.returning(webHostTableQuery.map(_.id)).into((w, i) => w.copy(id = Some(i)))
 
-    override def getAll: Future[Seq[HttpCookie]] = db.run(httpCookieTableQuery.to[Seq].result.transactionally)
+  def getByName(hostName: String): Future[Option[WebHost]] = db.run(webHostTableQuery.filter(_.hostname === hostName).result.headOption)
 
-    override def getData(v: HttpCookie): Future[Option[HttpCookie]] = v.id match {
-      case Some(_id) => getHttpCookieBy(_id)
-      case _ => Future(None)
-    }
+}
 
-    def getHttpCookieBy(id: Long): Future[Option[HttpCookie]] = db.run(httpCookieTableQuery.filter(_.id === id).result.headOption.transactionally)
+trait HttpCookieDataAccess extends DataAccess[HttpCookie] with WithHttpCookieTable {
+  this: DBComponent with ImplicitExecutionContext =>
+
+  override def insert(v: HttpCookie): Future[HttpCookie] = if (v.id.isEmpty) db.run(insertQueryReturningObject += v) else Future.failed(new InsertWithIdException)
+
+  override def insert(vs: Seq[HttpCookie]): Future[Seq[HttpCookie]] =
+    if (vs.exists(_.id.isDefined)) Future.failed(new InsertWithIdException)
+    else db.run((insertQueryReturningObject ++= vs).transactionally)
+
+  override def update(v: HttpCookie): Future[Option[HttpCookie]] = withId(v.id) { i =>
+    db.run(findById(i).update(v).map {
+      case 0 => None
+      case _ => Some(v)
+    })
   }
 
-  trait HostRelationDataAccess extends DataAccess[HostRelation] with WithHostRelationTable {
-    this: DBComponent =>
+  override def delete(v: HttpCookie): Future[Int] = withId(v.id) { i => db.run(findById(i).delete) }
 
-    override def insert(v: HostRelation): Future[Long] ={
-      db.run((hostRelationTableQuery += v).transactionally)
-      // Just return get from host id
-      Future{v.fromHostId}
-    }
+  override def getAll: Future[Seq[HttpCookie]] = db.run(httpCookieTableQuery.result)
 
-    override def insert(vs: Seq[HostRelation]): Future[Seq[Long]] = {
-      db.run((hostRelationTableQuery ++= vs).transactionally)
-      Future{vs.map(_.fromHostId)}
-    }
+  override def getById(id: Long): Future[Option[HttpCookie]] = db.run(findById(id).result.headOption)
 
-    override def update(v: HostRelation): Future[Int] = db.run(hostRelationTableQuery.filter(r => r.fromID === v.fromHostId && r.toID === v.toHostId).update(v).transactionally)
+  private def insertQueryReturningObject = httpCookieTableQuery.returning(httpCookieTableQuery.map(_.id)).into((o, i) => o.copy(id = Some(i)))
 
-    override def getAll: Future[Seq[HostRelation]] = db.run(hostRelationTableQuery.to[Seq].result.transactionally)
+  private val findById = Compiled((id: ConstColumn[Long]) => httpCookieTableQuery.filter(_.id === id))
+}
 
-    override def delete(v: HostRelation): Future[Int] = db.run(hostRelationTableQuery.filter(r => r.fromID === v.fromHostId && r.toID === v.toHostId).delete.transactionally)
+trait HostRelationDataAccess extends DataAccess[HostRelation] with WithHostRelationTable {
+  this: DBComponent with ImplicitExecutionContext =>
 
-    override def getData(v: HostRelation): Future[Option[HostRelation]] = getHostRelationBy(v.fromHostId, v.toHostId)
+  override def insert(v: HostRelation): Future[HostRelation] = if (v.id.isEmpty) db.run(insertQueryReturningObject += v) else Future.failed(new InsertWithIdException)
 
-    def getHostRelationBy(fromid: Long, toid: Long): Future[Option[HostRelation]] = db.run(hostRelationTableQuery.filter(r => r.fromID === fromid && r.toID === toid).result.headOption.transactionally)
+  override def insert(vs: Seq[HostRelation]): Future[Seq[HostRelation]] =
+    if (vs.exists(_.id.isDefined)) Future.failed(new InsertWithIdException)
+    else db.run((insertQueryReturningObject ++= vs).transactionally)
+
+  override def update(v: HostRelation): Future[Option[HostRelation]] = withId(v.id) { i =>
+    db.run(findById(i).update(v).map {
+      case 0 => None
+      case _ => Some(v)
+    })
   }
 
-  trait UrlDataAccess extends DataAccess[Url] with WithUrlTable {
-    this: DBComponent =>
+  override def getAll: Future[Seq[HostRelation]] = db.run(hostRelationTableQuery.result)
 
-    override def insert(v: Url): Future[Long] = db.run((urlTableAutoInc += v).transactionally)
+  override def delete(v: HostRelation): Future[Int] = withId(v.id) { i => db.run(findById(i).delete) }
 
-    override def insert(vs: Seq[Url]): Future[Seq[Long]] = db.run((urlTableAutoInc ++= vs).transactionally)
+  override def getById(id: Long): Future[Option[HostRelation]] = db.run(findById(id).result.headOption)
 
-    override def update(v: Url): Future[Int] = db.run(urlTableQuery.filter(_.id === v.id.get).update(v).transactionally)
+  private val findById = Compiled((id: ConstColumn[Long]) => hostRelationTableQuery.filter(_.id === id))
 
-    override def delete(v: Url): Future[Int] = db.run(urlTableQuery.filter(_.id === v.id.get).delete.transactionally)
+  private def insertQueryReturningObject = hostRelationTableQuery.returning(hostRelationTableQuery.map(_.id)).into((w, i) => w.copy(id = Some(i)))
+}
 
-    override def getAll: Future[Seq[Url]] = db.run(urlTableQuery.to[Seq].result.transactionally)
+trait UrlDataAccess extends DataAccess[Url] with WithUrlTable {
+  this: DBComponent with ImplicitExecutionContext =>
 
-    override def getData(v: Url): Future[Option[Url]] = v.id match {
-      case Some(_id) => getUrlBy(_id)
-      case _ => Future(None)
-    }
+  override def insert(v: Url): Future[Url] = if (v.id.isEmpty) db.run(insertQueryReturningObject += v) else Future.failed(new InsertWithIdException)
 
-    def getUrlBy(id: Long): Future[Option[Url]] = db.run(urlTableQuery.filter(_.id === id).result.headOption.transactionally)
+  override def insert(vs: Seq[Url]): Future[Seq[Url]] =
+    if (vs.exists(_.id.isDefined)) Future.failed(new InsertWithIdException)
+    else db.run((insertQueryReturningObject ++= vs).transactionally)
+
+  override def update(v: Url): Future[Option[Url]] = withId(v.id) { i =>
+    db.run(findById(i).update(v).map {
+      case 0 => None
+      case _ => Some(v)
+    })
   }
+
+  override def delete(v: Url): Future[Int] = withId(v.id) { i => db.run(findById(i).delete) }
+
+  override def getAll: Future[Seq[Url]] = db.run(urlTableQuery.result)
+
+  override def getById(id: Long): Future[Option[Url]] = db.run(findById(id).result.headOption)
+
+  private val findById = Compiled((id: ConstColumn[Long]) => urlTableQuery.filter(_.id === id))
+
+  private def insertQueryReturningObject = urlTableQuery.returning(urlTableQuery.map(_.id)).into((w, i) => w.copy(id = Some(i)))
+
 }
 
