@@ -10,3 +10,17 @@
 ** TODO A HTTP response parser which extract key infos.
    
 ** TODO Make parser and client work together recursively.
+
+** TODO Define Business layer
+*** Step 1, After all urls should be crawled, First we should find data structures for WebHost, HostRelation, it allows us to find a host with linear complexity.
+Second, we take these relations and find the root of these relation hosts if we could do so, we need just analyse all content of the root host.
+if we can't find root, we must find a solution or define a methodology to cluster hosts to analyse.
+(in my mind, we could take data structure like Trie(Dictionary) for parser the Hostname, and we take this hostname to get HostID,
+so we could find all host relations)
+
+One way much simpler is analysing data in httpcookie, most persist cookies of web sites for tracking user behavior or advertisement exist more than one day,
+so we can take those cookies whose expire date is far away from now or max age is more than one day.
+
+*** Step 2, We crawl script to analyse deeper in network
+*** TODO More details for next step
+
