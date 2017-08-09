@@ -8,6 +8,14 @@ trait ImplicitExecutionContext {
   implicit val executionContext: ExecutionContext
 }
 
+/**
+  * All subclass will share a same execution context based on a Java thread pool
+  * executor
+  */
 trait ThreadPoolExecutionContext extends ImplicitExecutionContext {
-  implicit val executionContext = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(5))
+  implicit val executionContext: ExecutionContext = ThreadPoolExecutionContext.ec
+}
+
+object ThreadPoolExecutionContext {
+  private val ec = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(5))
 }

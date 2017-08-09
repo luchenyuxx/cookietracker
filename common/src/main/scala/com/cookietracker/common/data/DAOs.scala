@@ -6,25 +6,41 @@ import slick.driver.PostgresDriver.api._
 
 import scala.concurrent.Future
 
-class FindEmptyIdException extends Exception("The object should have an id")
-
-class InsertWithIdException extends Exception("The object to insert should not have an id")
-
-trait DataAccess[T] {
+trait DataAccess[T <: WithId] {
+  /**
+    * Insert an object without id to database
+    * @param v the object to insert, it should not have an id
+    * @return A future containing the object with its id
+    */
   def insert(v: T): Future[T]
 
+  /**
+    * Insert a sequence of objects without id to database
+    * @param vs the objects to insert, they should not have ids
+    * @return A future containing the objects with their ids in database
+    */
   def insert(vs: Seq[T]): Future[Seq[T]]
 
+  /**
+    * Update an object in database. The object should indicate its id.
+    * @param v the object to update, it should have its id in database.
+    * @return A future containing: 1) Some(v) if update succeed. 2) None if there is no object with such id in database.
+    */
   def update(v: T): Future[Option[T]]
 
+  /**
+    * Delete an object in database. The object should indicate its id.
+    * @param v the object to delete, it should have its id in database.
+    * @return
+    */
   def delete(v: T): Future[Int]
 
   def getAll: Future[Seq[T]]
 
   def getById(id: Long): Future[Option[T]]
 
-  protected def withId[S](idOption: Option[Long])(f: Long => Future[S]): Future[S] = idOption match {
-    case Some(i) => f(i)
+  protected def withId[S](v: T)(f: (Long, T) => Future[S]): Future[S] = v.id match {
+    case Some(i) => f(i, v)
     case None => Future.failed(new FindEmptyIdException)
   }
 
@@ -39,14 +55,14 @@ trait WebHostDataAccess extends DataAccess[WebHost] with WithWebHostTable {
     if (vs.exists(_.id.isDefined)) Future.failed(new InsertWithIdException)
     else db.run((insertQueryReturningObject ++= vs).transactionally)
 
-  override def update(v: WebHost): Future[Option[WebHost]] = withId(v.id) { i =>
-    db.run(findById(i).update(v)).map {
+  override def update(v: WebHost): Future[Option[WebHost]] = withId(v) { (i, o) =>
+    db.run(findById(i).update(o)).map {
       case 0 => None
-      case _ => Some(v)
+      case _ => Some(o)
     }
   }
 
-  override def delete(v: WebHost): Future[Int] = withId(v.id) { i => db.run(findById(i).delete) }
+  override def delete(v: WebHost): Future[Int] = withId(v) { (i, _) => db.run(findById(i).delete) }
 
   override def getAll: Future[Seq[WebHost]] = db.run(webHostTableQuery.result)
 
@@ -69,14 +85,14 @@ trait HttpCookieDataAccess extends DataAccess[HttpCookie] with WithHttpCookieTab
     if (vs.exists(_.id.isDefined)) Future.failed(new InsertWithIdException)
     else db.run((insertQueryReturningObject ++= vs).transactionally)
 
-  override def update(v: HttpCookie): Future[Option[HttpCookie]] = withId(v.id) { i =>
-    db.run(findById(i).update(v).map {
+  override def update(v: HttpCookie): Future[Option[HttpCookie]] = withId(v) { (i, o) =>
+    db.run(findById(i).update(o).map {
       case 0 => None
-      case _ => Some(v)
+      case _ => Some(o)
     })
   }
 
-  override def delete(v: HttpCookie): Future[Int] = withId(v.id) { i => db.run(findById(i).delete) }
+  override def delete(v: HttpCookie): Future[Int] = withId(v) { (i, _) => db.run(findById(i).delete) }
 
   override def getAll: Future[Seq[HttpCookie]] = db.run(httpCookieTableQuery.result)
 
@@ -96,16 +112,16 @@ trait HostRelationDataAccess extends DataAccess[HostRelation] with WithHostRelat
     if (vs.exists(_.id.isDefined)) Future.failed(new InsertWithIdException)
     else db.run((insertQueryReturningObject ++= vs).transactionally)
 
-  override def update(v: HostRelation): Future[Option[HostRelation]] = withId(v.id) { i =>
-    db.run(findById(i).update(v).map {
+  override def update(v: HostRelation): Future[Option[HostRelation]] = withId(v) { (i, o) =>
+    db.run(findById(i).update(o).map {
       case 0 => None
-      case _ => Some(v)
+      case _ => Some(o)
     })
   }
 
   override def getAll: Future[Seq[HostRelation]] = db.run(hostRelationTableQuery.result)
 
-  override def delete(v: HostRelation): Future[Int] = withId(v.id) { i => db.run(findById(i).delete) }
+  override def delete(v: HostRelation): Future[Int] = withId(v) { (i, _) => db.run(findById(i).delete) }
 
   override def getById(id: Long): Future[Option[HostRelation]] = db.run(findById(id).result.headOption)
 
@@ -123,14 +139,14 @@ trait UrlDataAccess extends DataAccess[Url] with WithUrlTable {
     if (vs.exists(_.id.isDefined)) Future.failed(new InsertWithIdException)
     else db.run((insertQueryReturningObject ++= vs).transactionally)
 
-  override def update(v: Url): Future[Option[Url]] = withId(v.id) { i =>
-    db.run(findById(i).update(v).map {
+  override def update(v: Url): Future[Option[Url]] = withId(v) { (i, o) =>
+    db.run(findById(i).update(o).map {
       case 0 => None
-      case _ => Some(v)
+      case _ => Some(o)
     })
   }
 
-  override def delete(v: Url): Future[Int] = withId(v.id) { i => db.run(findById(i).delete) }
+  override def delete(v: Url): Future[Int] = withId(v) { (i, _) => db.run(findById(i).delete) }
 
   override def getAll: Future[Seq[Url]] = db.run(urlTableQuery.result)
 

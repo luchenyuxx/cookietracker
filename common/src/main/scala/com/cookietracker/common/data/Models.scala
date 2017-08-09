@@ -2,11 +2,15 @@ package com.cookietracker.common.data
 
 import java.sql.Date
 
-final case class WebHost(hostName: String, id: Option[Long] = None)
+trait WithId {
+  def id: Option[Long]
+}
 
-final case class HostRelation(fromHostId: Long, toHostId: Long, requestUrl: String, id: Option[Long] = None)
+final case class WebHost(hostName: String, id: Option[Long] = None) extends WithId
 
-final case class Url(protocol: String, hostId: Long, port: Int, file: String, id: Option[Long] = None)
+final case class HostRelation(fromHostId: Long, toHostId: Long, requestUrl: String, id: Option[Long] = None) extends WithId
+
+final case class Url(protocol: String, hostId: Long, port: Int, file: String, id: Option[Long] = None) extends WithId
 
 final case class HttpCookie(name: String,
                             value: String,
@@ -17,4 +21,4 @@ final case class HttpCookie(name: String,
                             secure: Boolean = false,
                             httpOnly: Boolean = false,
                             extension: Option[String] = None,
-                            id: Option[Long] = None)
+                            id: Option[Long] = None) extends WithId
