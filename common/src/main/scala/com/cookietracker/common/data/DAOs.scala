@@ -46,36 +46,6 @@ trait DataAccess[T <: WithId] {
 
 }
 
-trait WebHostDataAccess extends DataAccess[WebHost] with WithWebHostTable {
-  this: DBComponent with ImplicitExecutionContext =>
-
-  override def insert(v: WebHost): Future[WebHost] = if (v.id.isEmpty) db.run(insertQueryReturningObject += v) else Future.failed(new InsertWithIdException)
-
-  override def insert(vs: Seq[WebHost]): Future[Seq[WebHost]] =
-    if (vs.exists(_.id.isDefined)) Future.failed(new InsertWithIdException)
-    else db.run((insertQueryReturningObject ++= vs).transactionally)
-
-  override def update(v: WebHost): Future[Option[WebHost]] = withId(v) { (i, o) =>
-    db.run(findById(i).update(o)).map {
-      case 0 => None
-      case _ => Some(o)
-    }
-  }
-
-  override def delete(v: WebHost): Future[Int] = withId(v) { (i, _) => db.run(findById(i).delete) }
-
-  override def getAll: Future[Seq[WebHost]] = db.run(webHostTableQuery.result)
-
-  override def getById(id: Long): Future[Option[WebHost]] = db.run(findById(id).result.headOption)
-
-  private val findById = Compiled((id: ConstColumn[Long]) => webHostTableQuery.filter(_.id === id))
-
-  private def insertQueryReturningObject = webHostTableQuery.returning(webHostTableQuery.map(_.id)).into((w, i) => w.copy(id = Some(i)))
-
-  def getByName(hostName: String): Future[Option[WebHost]] = db.run(webHostTableQuery.filter(_.hostname === hostName).result.headOption)
-
-}
-
 trait HttpCookieDataAccess extends DataAccess[HttpCookie] with WithHttpCookieTable {
   this: DBComponent with ImplicitExecutionContext =>
 
@@ -124,6 +94,8 @@ trait HostRelationDataAccess extends DataAccess[HostRelation] with WithHostRelat
   override def delete(v: HostRelation): Future[Int] = withId(v) { (i, _) => db.run(findById(i).delete) }
 
   override def getById(id: Long): Future[Option[HostRelation]] = db.run(findById(id).result.headOption)
+
+  def allRelationsFrom(fromHost: String): Future[Seq[HostRelation]] = db.run(hostRelationTableQuery.filter(_.fromHost === fromHost).result)
 
   private val findById = Compiled((id: ConstColumn[Long]) => hostRelationTableQuery.filter(_.id === id))
 

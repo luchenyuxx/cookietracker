@@ -5,96 +5,78 @@ import java.sql.Date
 import com.cookietracker.common.database.DBComponent
 import slick.jdbc.meta.MTable
 import slick.lifted._
+import slick.profile.SqlProfile.ColumnOption.Nullable
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext}
 
-private[data] trait WithWebHostTable {
+private[data] trait WithHostRelationTable {
   self: DBComponent =>
   import driver.api._
 
-  protected[WithWebHostTable] class WebHostTable(tag: Tag) extends Table[WebHost](tag: Tag, "WebHosts") {
-    def hostname: Rep[String] = column[String]("HostName")
-    def idx = index("NAME_UNIQUE", hostname, unique = true)
-    def id: Rep[Long] = column[Long]("ID", O.PrimaryKey, O.AutoInc)
-    override def * : ProvenShape[WebHost] = (hostname, id.?) <> (WebHost.tupled, WebHost.unapply)
-  }
+  protected[WithHostRelationTable] class HostRelationTable(tag: Tag) extends Table[HostRelation](tag, "host_relations") {
+    def id: Rep[Long] = column[Long]("id", O.PrimaryKey, O.AutoInc)
 
-  protected val webHostTableQuery: TableQuery[WebHostTable] = TableQuery[WebHostTable]
-}
+    def fromHost: Rep[String] = column[String]("from_host")
 
-private[data] trait WithHostRelationTable extends WithWebHostTable {
-  self: DBComponent =>
-  import driver.api._
+    def toHost: Rep[String] = column[String]("to_host")
 
-  protected[WithHostRelationTable] class HostRelationTable(tag: Tag) extends Table[HostRelation](tag, "HostRelations") {
-    def id: Rep[Long] = column[Long]("ID", O.PrimaryKey, O.AutoInc)
+    def url: Rep[String] = column[String]("request_url")
 
-    def fromID: Rep[Long] = column[Long]("FromID")
-
-    def fromK: ForeignKeyQuery[WebHostTable, WebHost] = foreignKey("HOST_FROM_FK", fromID, webHostTableQuery)(_.id)
-
-    def toID: Rep[Long] = column[Long]("ToID")
-
-    def toK: ForeignKeyQuery[WebHostTable, WebHost] = foreignKey("HOST_TO_FK", toID, webHostTableQuery)(_.id)
-
-    def url: Rep[String] = column[String]("RequestURL")
-
-    override def * : ProvenShape[HostRelation] = (fromID, toID, url, id ?) <> (HostRelation.tupled, HostRelation.unapply)
+    override def * : ProvenShape[HostRelation] = (fromHost, toHost, url, id ?) <> (HostRelation.tupled, HostRelation.unapply)
   }
 
   protected val hostRelationTableQuery: TableQuery[HostRelationTable] = TableQuery[HostRelationTable]
 }
 
-private[data] trait WithHttpCookieTable extends WithWebHostTable {
+private[data] trait WithHttpCookieTable {
   self: DBComponent =>
 
   import driver.api._
 
-  protected[WithHttpCookieTable] class HttpCookieTable(tag: Tag) extends Table[HttpCookie](tag, "HttpCookies") {
-    def name: Rep[String] = column[String]("Name")
+  protected[WithHttpCookieTable] class HttpCookieTable(tag: Tag) extends Table[HttpCookie](tag, "cookies") {
+    def id: Rep[Long] = column[Long]("id", O.PrimaryKey, O.AutoInc)
 
-    def value: Rep[String] = column[String]("Value")
+    def name: Rep[String] = column[String]("name")
 
-    def expire: Rep[Date] = column[Date]("ExpiredDate")
+    def value: Rep[String] = column[String]("value")
 
-    def maxAge: Rep[Long] = column[Long]("MaxAge")
+    def expire: Rep[Date] = column[Date]("expired_date", Nullable)
 
-    def domain: Rep[String] = column[String]("Domain")
+    def maxAge: Rep[Long] = column[Long]("max_age", Nullable)
 
-    def path: Rep[String] = column[String]("Path")
+    def domain: Rep[String] = column[String]("domain")
 
-    def secure: Rep[Boolean] = column[Boolean]("Secure")
+    def path: Rep[String] = column[String]("path", Nullable)
 
-    def httpOnly: Rep[Boolean] = column[Boolean]("HttpOnly")
+    def secure: Rep[Boolean] = column[Boolean]("secure")
 
-    def extension: Rep[String] = column[String]("Extension")
+    def httpOnly: Rep[Boolean] = column[Boolean]("http_only")
 
-    def id: Rep[Long] = column[Long]("ID", O.PrimaryKey, O.AutoInc)
+    def extension: Rep[String] = column[String]("extension", Nullable)
 
-    override def * : ProvenShape[HttpCookie] = (name, value, expire.?, maxAge.?, domain.?, path.?, secure, httpOnly, extension.?, id.?) <> (HttpCookie.tupled, HttpCookie.unapply)
+    override def * : ProvenShape[HttpCookie] = (name, value, expire.?, maxAge.?, domain, path.?, secure, httpOnly, extension.?, id.?) <> (HttpCookie.tupled, HttpCookie.unapply)
   }
 
   protected val httpCookieTableQuery: TableQuery[HttpCookieTable] = TableQuery[HttpCookieTable]
 }
 
-private[data] trait WithUrlTable extends WithWebHostTable {
+private[data] trait WithUrlTable {
   self: DBComponent =>
   import driver.api._
 
-  protected[WithUrlTable] class UrlTable(tag: Tag) extends Table[Url](tag, "URLs") {
-    def protocol: Rep[String] = column[String]("Protocol")
+  protected[WithUrlTable] class UrlTable(tag: Tag) extends Table[Url](tag, "urls") {
+    def id: Rep[Long] = column[Long]("id", O.PrimaryKey, O.AutoInc)
 
-    def hostId: Rep[Long] = column[Long]("HostID")
+    def protocol: Rep[String] = column[String]("protocol")
 
-    def port: Rep[Int] = column[Int]("Port")
+    def host: Rep[String] = column[String]("host_id")
 
-    def file: Rep[String] = column[String]("File")
+    def port: Rep[Int] = column[Int]("port")
 
-    def id: Rep[Long] = column[Long]("ID", O.PrimaryKey, O.AutoInc)
+    def file: Rep[String] = column[String]("file")
 
-    def host: ForeignKeyQuery[UrlTable, Url] = foreignKey("URL_FK", id, urlTableQuery)(_.id)
-    override def * : ProvenShape[Url] = (protocol, hostId, port, file, id.?) <> (Url.tupled, Url.unapply)
+    override def * : ProvenShape[Url] = (protocol, host, port, file, id.?) <> (Url.tupled, Url.unapply)
   }
 
   protected val urlTableQuery: TableQuery[UrlTable] = TableQuery[UrlTable]
@@ -102,13 +84,13 @@ private[data] trait WithUrlTable extends WithWebHostTable {
   protected def urlTableAutoInc: driver.ReturningInsertActionComposer[Url, Long] = urlTableQuery returning urlTableQuery.map(_.id)
 }
 
-trait SchemaChecker extends WithHostRelationTable with WithWebHostTable with WithHttpCookieTable with WithUrlTable {
+trait SchemaChecker extends WithHostRelationTable with WithHttpCookieTable with WithUrlTable {
   self: DBComponent =>
 
   import driver.api._
 
   def checkAndCreateTables(implicit ec: ExecutionContext): Unit = {
-    val tables = Seq(webHostTableQuery, hostRelationTableQuery, httpCookieTableQuery, urlTableQuery)
+    val tables = Seq(hostRelationTableQuery, httpCookieTableQuery, urlTableQuery)
     val existing = db.run(MTable.getTables)
     val f = existing.flatMap(v => {
       val names = v.map(mt => mt.name.name)

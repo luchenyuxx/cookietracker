@@ -6,17 +6,15 @@ trait WithId {
   def id: Option[Long]
 }
 
-final case class WebHost(hostName: String, id: Option[Long] = None) extends WithId
+final case class HostRelation(fromHost: String, toHost: String, requestUrl: String, id: Option[Long] = None) extends WithId
 
-final case class HostRelation(fromHostId: Long, toHostId: Long, requestUrl: String, id: Option[Long] = None) extends WithId
-
-final case class Url(protocol: String, hostId: Long, port: Int, file: String, id: Option[Long] = None) extends WithId
+final case class Url(protocol: String, host: String, port: Int, file: String, id: Option[Long] = None) extends WithId
 
 final case class HttpCookie(name: String,
                             value: String,
                             expires: Option[Date] = None,
                             maxAge: Option[Long] = None,
-                            domain: Option[String] = None,
+                            domain: String,
                             path: Option[String] = None,
                             secure: Boolean = false,
                             httpOnly: Boolean = false,
