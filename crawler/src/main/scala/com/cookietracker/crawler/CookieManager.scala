@@ -6,9 +6,13 @@ import java.sql.Date
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.http.scaladsl.model.headers
 import com.cookietracker.common.data.{DaoFactory, HttpCookie}
+import com.cookietracker.crawler.CookieManager.{GetCookie, GetCookieResult}
 
 import scala.concurrent.ExecutionContextExecutor
 
+/**
+  * CookieManager is responsible for recording and getting cookies from database.
+  */
 object CookieManager {
   def props = Props(new CookieManager)
 
@@ -17,6 +21,13 @@ object CookieManager {
   case class GetCookie(url: URL)
 
   case class GetCookieResult(url: URL, cookies: Seq[headers.HttpCookie])
+}
+
+class NoCookieManager extends Actor {
+  override def receive = {
+    case GetCookie(url) => sender() ! GetCookieResult(url, Seq())
+    case _ =>
+  }
 }
 
 class CookieManager extends Actor with ActorLogging {
