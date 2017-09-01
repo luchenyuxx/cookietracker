@@ -1,13 +1,15 @@
 package com.cookietracker.crawler
 
+import java.io._
 import java.net.URL
-import java.util
-import java.util.Collections
-import java.util.concurrent.ConcurrentHashMap
 
 import akka.actor.{Actor, ActorLogging, Props}
+import com.cookietracker.common.data.{DaoFactory, Memory}
+import com.google.common.hash.{BloomFilter, Funnels}
 
-import scala.collection.JavaConversions._
+import scala.concurrent.Await
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.Duration
 
 /**
   * To avoid downloading and processing a document multiple times, a URL dedup test
@@ -22,11 +24,22 @@ import scala.collection.JavaConversions._
 object UrlDeduplicator {
   def props = Props(new UrlDeduplicator)
 
-  val seenUrl: util.Set[String] = Collections.newSetFromMap[String](new ConcurrentHashMap())
+  val MEMORY_NAME = "url_bloom_filter"
+  lazy val bloomFilter: BloomFilter[CharSequence] = {
+    Await.result(
+      DaoFactory.memoryDao.getByName(MEMORY_NAME).map {
+        case Some(m) =>
+          BloomFilter.readFrom[CharSequence](new ByteArrayInputStream(m.data), Funnels.unencodedCharsFunnel())
+        case None =>
+          BloomFilter.create[CharSequence](Funnels.unencodedCharsFunnel(), Int.MaxValue, 0.95)
+      }, Duration.Inf
+    )
+  }
 
   case class Deduplicate(baseUrl: URL, urls: Seq[URL])
 
   case class DeduplicateResult(baseUrl: URL, urls: Seq[URL])
+
 }
 
 class UrlDeduplicator extends Actor with ActorLogging {
@@ -35,9 +48,19 @@ class UrlDeduplicator extends Actor with ActorLogging {
 
   override def receive: Receive = {
     case Deduplicate(baseUrl, urls) =>
-      val deduplicated = urls.filter(u => !seenUrl.contains(u.toExternalForm))
+      val deduplicated = urls.filter(u => !bloomFilter.mightContain(u.toExternalForm))
       log.info(s"Deduplicated urls from ${urls.size} to ${deduplicated.size}")
-      seenUrl.addAll(deduplicated.map(_.toExternalForm))
+      deduplicated.map(_.toExternalForm).foreach(bloomFilter.put)
       sender() ! DeduplicateResult(baseUrl, deduplicated)
+  }
+
+  override def postStop(): Unit = {
+    super.postStop()
+    val outputStream = new ByteArrayOutputStream()
+    bloomFilter.writeTo(outputStream)
+    Await.ready(
+      DaoFactory.memoryDao.upsert(Memory(MEMORY_NAME, outputStream.toByteArray)), Duration.Inf
+    )
+    log.info("Wrote url bloom filter to database")
   }
 }
