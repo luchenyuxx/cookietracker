@@ -8,7 +8,7 @@ trait WithId {
 
 final case class HostRelation(fromHost: String, toHost: String, requestUrl: String, id: Option[Long] = None) extends WithId
 
-final case class Url(protocol: String, host: String, port: Int, file: String, id: Option[Long] = None) extends WithId
+final case class Url(url: String, id: Option[Long] = None) extends WithId
 
 final case class HttpCookie(name: String,
                             value: String,
@@ -20,3 +20,5 @@ final case class HttpCookie(name: String,
                             httpOnly: Boolean = false,
                             extension: Option[String] = None,
                             id: Option[Long] = None) extends WithId
+
+final case class Memory(name: String, data: Array[Byte])

@@ -120,6 +120,11 @@ trait UrlDataAccess extends DataAccess[Url] with WithUrlTable {
 
   override def delete(v: Url): Future[Int] = withId(v) { (i, _) => db.run(findById(i).delete) }
 
+  /**
+    * @return Future of delete count
+    */
+  def deleteAll(): Future[Int] = db.run(urlTableQuery.delete)
+
   override def getAll: Future[Seq[Url]] = db.run(urlTableQuery.result)
 
   override def getById(id: Long): Future[Option[Url]] = db.run(findById(id).result.headOption)
@@ -130,3 +135,9 @@ trait UrlDataAccess extends DataAccess[Url] with WithUrlTable {
 
 }
 
+trait MemoryDataAccess extends WithMemoryTable {
+  this: DBComponent with ImplicitExecutionContext =>
+  def upsert(m: Memory): Future[Int] = db.run(memoryTableQuery.insertOrUpdate(m))
+
+  def getByName(name: String): Future[Option[Memory]] = db.run(memoryTableQuery.filter(_.name === name).result.headOption)
+}

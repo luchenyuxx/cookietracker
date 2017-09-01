@@ -65,18 +65,12 @@ private[data] trait WithUrlTable {
   self: DBComponent =>
   import driver.api._
 
-  protected[WithUrlTable] class UrlTable(tag: Tag) extends Table[Url](tag, "urls") {
+  protected[WithUrlTable] class UrlTable(tag: Tag) extends Table[Url](tag, "urls_to_process") {
     def id: Rep[Long] = column[Long]("id", O.PrimaryKey, O.AutoInc)
 
-    def protocol: Rep[String] = column[String]("protocol")
+    def url: Rep[String] = column[String]("url")
 
-    def host: Rep[String] = column[String]("host_id")
-
-    def port: Rep[Int] = column[Int]("port")
-
-    def file: Rep[String] = column[String]("file")
-
-    override def * : ProvenShape[Url] = (protocol, host, port, file, id.?) <> (Url.tupled, Url.unapply)
+    override def * : ProvenShape[Url] = (url, id.?) <> (Url.tupled, Url.unapply)
   }
 
   protected val urlTableQuery: TableQuery[UrlTable] = TableQuery[UrlTable]
@@ -84,13 +78,29 @@ private[data] trait WithUrlTable {
   protected def urlTableAutoInc: driver.ReturningInsertActionComposer[Url, Long] = urlTableQuery returning urlTableQuery.map(_.id)
 }
 
-trait SchemaChecker extends WithHostRelationTable with WithHttpCookieTable with WithUrlTable {
+private[data] trait WithMemoryTable {
+  self: DBComponent =>
+
+  import driver.api._
+
+  protected[WithMemoryTable] class MemoryTable(tag: Tag) extends Table[Memory](tag, "memory") {
+    def name: Rep[String] = column[String]("name", O.PrimaryKey)
+
+    def data: Rep[Array[Byte]] = column[Array[Byte]]("data")
+
+    override def * : ProvenShape[Memory] = (name, data) <> (Memory.tupled, Memory.unapply)
+  }
+
+  protected val memoryTableQuery = TableQuery[MemoryTable]
+}
+
+trait SchemaChecker extends WithHostRelationTable with WithHttpCookieTable with WithUrlTable with WithMemoryTable {
   self: DBComponent =>
 
   import driver.api._
 
   def checkAndCreateTables(implicit ec: ExecutionContext): Unit = {
-    val tables = Seq(hostRelationTableQuery, httpCookieTableQuery, urlTableQuery)
+    val tables = Seq(hostRelationTableQuery, httpCookieTableQuery, urlTableQuery, memoryTableQuery)
     val existing = db.run(MTable.getTables)
     val f = existing.flatMap(v => {
       val names = v.map(mt => mt.name.name)
