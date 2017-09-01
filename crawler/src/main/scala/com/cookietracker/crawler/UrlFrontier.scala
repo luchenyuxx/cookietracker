@@ -4,10 +4,11 @@ import java.net.URL
 import java.util.concurrent.{ConcurrentHashMap, ConcurrentLinkedQueue}
 
 import akka.actor.{Actor, ActorLogging, Props}
+import com.cookietracker.common.data.{DaoFactory, Url}
 
 import scala.collection.JavaConversions._
-import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContextExecutor}
 import scala.language.postfixOps
 
 /**
@@ -23,8 +24,8 @@ object UrlFrontier {
   def props = Props(new UrlFrontier)
 
   // A host contains a queue and a state
-  val subQueueByHost: ConcurrentHashMap[String, ConcurrentLinkedQueue[URL]] = new ConcurrentHashMap()
-  val hostByReady: ConcurrentHashMap[String, Boolean] = new ConcurrentHashMap()
+  lazy val subQueueByHost: ConcurrentHashMap[String, ConcurrentLinkedQueue[URL]] = new ConcurrentHashMap[String, ConcurrentLinkedQueue[URL]]()
+  lazy val hostByReady: ConcurrentHashMap[String, Boolean] = new ConcurrentHashMap()
 
   case class Enqueue(urls: Seq[URL])
 
@@ -73,6 +74,30 @@ class UrlFrontier extends Actor with ActorLogging {
           sender() ! DequeueResult(subQueueByHost.get(hostname).poll())
         case None => sender() ! EmptyOrBusyQueue
       }
+  }
+
+  override def preStart(): Unit = {
+    super.preStart()
+    val f =
+      DaoFactory.urlDao.getAll.map(s => {
+        log.info(s"Loading ${s.size} unprocessed urls from last session")
+        s
+      }).map(
+        s => s.map(u => new URL(u.url)).foreach(url => {
+          subQueueByHost.getOrElseUpdate(url.getHost, new ConcurrentLinkedQueue[URL]()).add(url)
+          hostByReady.put(url.getHost, true)
+        }))
+    f onComplete {
+      _ => DaoFactory.urlDao.deleteAll()
+    }
+    Await.ready(f, Duration.Inf)
+  }
+
+  override def postStop(): Unit = {
+    super.postStop()
+    val unprocessedUrls = subQueueByHost.flatMap(_._2).map(u => Url(u.toExternalForm)).toSeq
+    Await.ready(DaoFactory.urlDao.insert(unprocessedUrls), Duration.Inf)
+    log.info(s"${unprocessedUrls.size} unprocessed urls are stored in database.")
   }
 }
 
