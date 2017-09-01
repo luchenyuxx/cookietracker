@@ -42,11 +42,13 @@ class HttpFetcher extends Actor with ActorLogging {
   implicit val materializer = ActorMaterializer()
   implicit val contextExecutor: ExecutionContextExecutor = context.dispatcher
 
+  lazy val httpExt = Http(context.system)
+
   override def receive: Receive = {
     case Fetch(url, request) =>
       log.info(s"Fetching $request")
       val futureSender = sender()
-      val fetchFuture = Http(context.system).singleRequest(request)
+      val fetchFuture = httpExt.singleRequest(request)
       fetchFuture onSuccess {
         case r =>
           futureSender ! FetchResult(url, r)
