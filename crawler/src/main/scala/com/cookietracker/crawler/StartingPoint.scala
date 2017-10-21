@@ -3,8 +3,7 @@ package com.cookietracker.crawler
 import java.net.URL
 
 import akka.actor.{ActorSystem, PoisonPill}
-import com.cookietracker.common.data.SchemaChecker
-import com.cookietracker.common.database.PostgreSqlComponent
+import com.cookietracker.common.database.slick.{PostgreSqlComponent, SchemaChecker}
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext}
