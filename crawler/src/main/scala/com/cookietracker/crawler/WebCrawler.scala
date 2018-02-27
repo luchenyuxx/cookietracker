@@ -27,6 +27,8 @@ import scala.util.{Failure, Success, Try}
   */
 object WebCrawler {
   def props = Props(new WebCrawler)
+
+  case object Start
 }
 
 class WebCrawler extends Actor with ActorReporting with ActorLogging {
@@ -92,7 +94,7 @@ class WebCrawler extends Actor with ActorReporting with ActorLogging {
       urlDeduplicator ! Deduplicate(baseUrl, urls)
     case DeduplicateResult(_, urls) =>
       urlFrontier ! Enqueue(urls)
-    case Start =>
+    case WebCrawler.Start =>
       urlFrontier ! Dequeue
     case x => log.warning(s"Unknown message $x")
   }

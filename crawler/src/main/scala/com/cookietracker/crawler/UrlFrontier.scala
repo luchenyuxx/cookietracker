@@ -29,17 +29,11 @@ object UrlFrontier {
 
   case class Enqueue(urls: Seq[URL])
 
-  case class StoreUrlTask()
-
-  case class EnqueueResult()
-
   case object Dequeue
-
-  case class LoadUrlTask()
 
   case class DequeueResult(urlLoaded: URL)
 
-  case class EmptyOrBusyQueue()
+  case object EmptyOrBusyQueue
 }
 
 class UrlFrontier extends Actor with ActorLogging {

@@ -4,6 +4,7 @@ import java.net.URL
 
 import akka.actor.{ActorSystem, PoisonPill}
 import com.cookietracker.common.database.slick.{PostgreSqlComponent, SchemaChecker}
+import com.cookietracker.crawler.WebCrawler.Start
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext}
