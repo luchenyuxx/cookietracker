@@ -1,4 +1,4 @@
-package com.cookietracker.common.concurrency
+package com.cookietracker.common
 
 import java.util.concurrent.Executors
 

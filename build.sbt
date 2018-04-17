@@ -6,34 +6,29 @@ lazy val akkaHttpVersion = "10.0.8"
 
 lazy val common = (project in file("common")).settings(commonSettings)
 
-lazy val server = (project in file("server")).dependsOn(common).enablePlugins(PlayScala).settings(serverSettings)
-
 lazy val crawler = (project in file("crawler")).dependsOn(common).settings(crawlerSettings)
+
+resolvers ++= Seq(
+  Resolver.sonatypeRepo("releases"),
+  Resolver.sonatypeRepo("snapshots")
+)
 
 inThisBuild(List(
   organization := "com.cookietracker",
-  scalaVersion := "2.11.11",
+  scalaVersion := "2.12.5",
   version := "0.1.0-SNAPSHOT"
 ))
 
 lazy val commonSettings = Seq(
   libraryDependencies ++= Seq(
-    // Used for mongodb
-    "org.mongodb.scala" %% "mongo-scala-driver" % "2.1.0",
-    "org.postgresql" % "postgresql" % "42.1.1",
-    // Slick for FRM
-    "com.typesafe.slick" %% "slick" % "3.1.0",
-    "ch.qos.logback" % "logback-classic" % "1.2.3",
-    "com.typesafe.slick" %% "slick-hikaricp" % "3.1.0",
-    // test
+    "org.slf4j" % "slf4j-api" % "1.7.25",
     "org.scalatest" %% "scalatest" % "3.0.3" % Test,
-    "com.h2database" % "h2" % "1.4.196" % Test
+    "net.debasishg" %% "redisclient" % "3.5"
   )
 )
 
 lazy val crawlerSettings = Seq(
   libraryDependencies ++= Seq(
-    "org.scalatest" %% "scalatest" % "3.0.1",
     "com.typesafe.akka" %% "akka-actor" % akkaVersion,
     "com.typesafe.akka" %% "akka-testkit" % akkaVersion % Test,
     // used for HTML parse
@@ -44,27 +39,5 @@ lazy val crawlerSettings = Seq(
     "com.typesafe.akka" %% "akka-http-testkit" % akkaHttpVersion % Test,
     // https://mvnrepository.com/artifact/com.google.guava/guava
     "com.google.guava" % "guava" % "22.0"
-  )
-)
-
-lazy val serverSettings = Seq(
-  libraryDependencies ++= Seq(
-    filters, jdbc,
-    "org.scalatestplus.play" %% "scalatestplus-play" % "2.0.0" % Test,
-    // Used for HTML parse
-    "org.jsoup" % "jsoup" % "1.10.2",
-    // Used for URL validate
-    "commons-validator" % "commons-validator" % "1.6",
-    // Adds additional packages into Twirl
-    //TwirlKeys.templateImports += "com.cookietracker.controllers._"
-    // Adds additional packages into conf/routes
-    // play.sbt.routes.RoutesKeys.routesImport += "com.cookietracker.binders._"
-    // play jdbc pool support
-    // slick support
-    "com.typesafe.play" %% "play-slick" % "2.0.0",
-    // https://mvnrepository.com/artifact/org.xerial/sqlite-jdbc
-    "org.xerial" % "sqlite-jdbc" % "3.16.1",
-    // https://mvnrepository.com/artifact/org.postgresql/postgresql
-    "org.postgresql" % "postgresql" % "42.1.1"
   )
 )

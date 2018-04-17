@@ -1,26 +1,25 @@
 package com.cookietracker.crawler
 
-import java.io.InputStream
+import java.io.{InputStream, StringReader}
 import java.net.URL
+import java.util.Scanner
 
-import akka.actor.{Actor, ActorLogging, Props}
-import akka.http.scaladsl.model.HttpEntity
-import akka.stream.ActorMaterializer
+import akka.http.scaladsl.model.{HttpResponse, StatusCodes}
+import akka.stream._
 import akka.stream.scaladsl.{Sink, StreamConverters}
+import akka.stream.stage.{GraphStage, GraphStageLogic, InHandler, OutHandler}
+import com.cookietracker.crawler.LinkExtractor._
 import org.apache.commons.validator.routines.UrlValidator
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 
 import scala.collection.JavaConversions._
-import scala.concurrent.ExecutionContextExecutor
 import scala.util.{Failure, Success, Try}
 
 /**
   * Extract links from document
   */
 object LinkExtractor {
-  def props = Props(new LinkExtractor)
-
   case class LinkContainer(hrefLinks: Seq[URL], srcLinks: Seq[URL])
 
   private val HREF_LINK_NAME = "href"
@@ -29,6 +28,9 @@ object LinkExtractor {
   private def extractFromInputStream(i: InputStream, baseUrl: URL): LinkContainer = {
     val document = Jsoup.parse(i, null, baseUrl.toExternalForm)
     new LinkContainer(getLinksByAttribute(document, HREF_LINK_NAME, baseUrl), getLinksByAttribute(document, SRC_LINK_NAME, baseUrl))
+  }
+
+  private def get(i: InputStream) = {
   }
 
   private def getLinksByAttribute(document: Document, attributeName: String, baseUrl: URL): Seq[URL] = {
@@ -40,44 +42,40 @@ object LinkExtractor {
     baseUrl.getProtocol + ":" + attribute
   } else attribute
 
-  case class ExtractLink(baseUrl: URL, entity: HttpEntity)
-
-  case class ExtractResult(baseUrl: URL, links: LinkContainer)
-
-  case class ExtractFailure(bastUrl: URL, throwable: Throwable)
 }
 
-class LinkExtractor extends Actor with ActorLogging {
+class LinkExtractor(implicit m: Materializer) extends GraphStage[FlowShape[(URL, HttpResponse), (URL, LinkContainer)]] {
+  val in = Inlet[(URL, HttpResponse)]("in")
+  val out = Outlet[(URL, LinkContainer)]("out")
+  val shape = FlowShape.of(in, out)
 
-  import LinkExtractor._
-
-  implicit val contextExecutor: ExecutionContextExecutor = context.dispatcher
-  implicit val materializer = ActorMaterializer()
-
-  override def receive: Receive = {
-    case ExtractLink(url, e) =>
-      if (e.getContentType().mediaType.isText) {
-        log.info(s"Extracting links in $url")
-        val futureReceiver = sender()
-        Try {
-          val inputStream = e.dataBytes.runWith(StreamConverters.asInputStream())
-          extractFromInputStream(inputStream, url)
-        } match {
-          case Success(links) =>
-            log.info(s"Success to extract ${links.hrefLinks.size} href links, ${links.srcLinks.size} src links in $url")
-            futureReceiver ! ExtractResult(url, links)
-          case Failure(t) =>
-            log.error(t, s"Fail to extract links in $url")
-            futureReceiver ! ExtractFailure(url, t)
+  override def createLogic(inheritedAttributes: Attributes) = new GraphStageLogic(shape) {
+    setHandler(in, new InHandler {
+      override def onPush(): Unit = {
+        val message = grab(in)
+        val response = message._2
+        if(response.status.equals(StatusCodes.OK) && response.entity.getContentType().mediaType.isText) {
+          Try {
+            val inputStream = response.entity.dataBytes.runWith(StreamConverters.asInputStream())
+            extractFromInputStream(inputStream, message._1)
+          } match {
+            case Success(s) =>
+              println(s"Successfully extract ${s.hrefLinks.size} href links and ${s.srcLinks.size} source links from ${message._1}")
+              push(out, (message._1, s))
+            case Failure(t) =>
+              println(s"Fail to extract link from ${message._1}")
+              t.printStackTrace()
+              pull(in)
+          }
+        } else {
+          println(s"Ignore status code ${response.status} from ${message._1}")
+          response.entity.dataBytes.runWith(Sink.ignore)
+          pull(in)
         }
-      } else {
-        log.warning(s"Won't extract $url with content type ${e.getContentType()}")
       }
-      /** Consuming (or discarding) the Entity of a request is mandatory!
-        * If accidentally left neither consumed or discarded Akka HTTP will assume the incoming data should remain back-pressured,
-        * and will stall the incoming data via TCP back-pressure mechanisms.
-        * A client should consume the Entity regardless of the status of the HttpResponse.
-        */
-      e.dataBytes.runWith(Sink.ignore)
+    })
+    setHandler(out, new OutHandler {
+      override def onPull(): Unit = pull(in)
+    })
   }
 }
